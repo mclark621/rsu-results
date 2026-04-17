@@ -61,12 +61,17 @@ class RsuOAuthService {
     required String redirectUri,
     required String codeVerifier,
     required String code,
+    bool allowDirectFallback = false,
   }) async {
     // Prefer server-side token exchange so client_secret never exists on-device.
     try {
       return await exchangeCodeForTokenViaFirebase(clientId: clientId, redirectUri: redirectUri, codeVerifier: codeVerifier, code: code);
     } catch (e) {
-      debugPrint('OAuth token exchange via Firebase failed; falling back to direct exchange (may fail if client_secret is required): $e');
+      debugPrint('OAuth token exchange via Firebase failed: $e');
+      if (!allowDirectFallback) {
+        throw Exception('Token exchange via Firebase failed: $e');
+      }
+      debugPrint('Falling back to direct exchange (may fail if client_secret is required).');
       return await exchangeCodeForTokenDirect(clientId: clientId, redirectUri: redirectUri, codeVerifier: codeVerifier, code: code);
     }
   }
