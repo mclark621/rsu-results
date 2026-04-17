@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "137817579415",
+    "project_id": "ocdxhaiuzdfgs9xwpr9xafdczfm6j0",
+    "storage_bucket": "ocdxhaiuzdfgs9xwpr9xafdczfm6j0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137817579415:android:847111c31962374317eed2",
+        "android_client_info": {
+          "package_name": "com.mycompany.CounterApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGeYgofx5Q6JDo2U36Dozt0NhtpDhexc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137817579415:android:95a5f7e56236887617eed2",
+        "android_client_info": {
+          "package_name": "com.rsuresults.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGeYgofx5Q6JDo2U36Dozt0NhtpDhexc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
