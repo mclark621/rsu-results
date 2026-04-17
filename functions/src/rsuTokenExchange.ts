@@ -54,6 +54,8 @@ export const rsuTokenExchange = onRequest({
     // RunSignup's auth-code redemption endpoint (matches the Flutter client direct exchange).
     // IMPORTANT: Keep the parameter names aligned with their expected payload.
     const body = new URLSearchParams();
+    // OAuth2 Authorization Code + PKCE
+    body.set("grant_type", "authorization_code");
     body.set("client_id", clientId);
     body.set("client_secret", secret);
     body.set("redirect_uri", redirectUri);
