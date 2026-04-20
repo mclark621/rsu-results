@@ -48,8 +48,9 @@ class RsuFirebaseAuthService {
     return (firebaseCustomToken: token, rsuUserId: userId, email: email, firstName: firstName, lastName: lastName);
   }
 
-  Future<UserCredential> signInWithRsuAccessToken({required String rsuAccessToken}) async {
+  Future<({UserCredential credential, String rsuUserId, String email, String firstName, String lastName})> signInWithRsuAccessToken({required String rsuAccessToken}) async {
     final minted = await mintCustomToken(rsuAccessToken: rsuAccessToken);
-    return FirebaseAuth.instance.signInWithCustomToken(minted.firebaseCustomToken);
+    final cred = await FirebaseAuth.instance.signInWithCustomToken(minted.firebaseCustomToken);
+    return (credential: cred, rsuUserId: minted.rsuUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
   }
 }

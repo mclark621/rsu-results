@@ -38,11 +38,14 @@ class _BootstrapPageState extends State<BootstrapPage> {
       // mint a Firebase Custom Token and sign in silently.
       try {
         if (FirebaseAuth.instance.currentUser == null) {
-          await RsuFirebaseAuthService().signInWithRsuAccessToken(rsuAccessToken: accessToken);
+          final minted = await RsuFirebaseAuthService().signInWithRsuAccessToken(rsuAccessToken: accessToken);
+          if ((state.rsuUserId ?? '').trim().isEmpty && minted.rsuUserId.trim().isNotEmpty) {
+            await state.setRsuIdentity(rsuUserId: minted.rsuUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
+          }
         }
 
-        // Now that FirebaseAuth is established, retry Firestore hydration for timer credentials.
-        await state.hydrateTimerCredentialsFromFirestoreIfMissing();
+        // Now that FirebaseAuth is established, hydrate timer credentials from Firestore.
+        await state.hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
       } catch (e) {
         // If this fails we can still run the app with RSU token-only (Option 1 behavior).
         // But we log it so it’s diagnosable.

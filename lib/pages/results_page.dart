@@ -108,6 +108,7 @@ class _ResultsPageState extends State<ResultsPage> {
 
     try {
       final appState = context.read<RsuAppState>();
+      await appState.prepareForApiCall();
       final token = appState.accessToken;
       final api = RsuApi();
 

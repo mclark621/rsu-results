@@ -74,7 +74,7 @@ class RsuApi {
     required DateTimeRange range,
     String? timerApiKey,
     String? timerApiSecret,
-    bool onlyPartnerRaces = true,
+    bool onlyPartnerRaces = false,
     bool onlyRacesWithResults = true,
   }) async {
     final result = await listRacesWithResultsWithDebug(
@@ -93,7 +93,7 @@ class RsuApi {
     required DateTimeRange range,
     String? timerApiKey,
     String? timerApiSecret,
-    bool onlyPartnerRaces = true,
+    bool onlyPartnerRaces = false,
     bool onlyRacesWithResults = true,
   }) async {
     final isSingleDay = DateUtils.isSameDay(range.start, range.end);
@@ -102,16 +102,8 @@ class RsuApi {
     final secretHeader = (timerApiSecret ?? '').trim();
     final hasTimerSecret = secretHeader.isNotEmpty;
 
-    // Important: `only_partner_races=T` is not reliably honored unless the request is tied to
-    // a timer/partner context.
-    if (onlyPartnerRaces && !hasTimerSecret) {
-      throw Exception(
-        'Partner-only race listing requires Timer API credentials.\n'
-        'Missing: Timer API Secret (X-RSU-API-SECRET).\n\n'
-        'Fix: open Global Settings and enter:\n'
-        '• rsu_api_key + X-RSU-API-SECRET\n',
-      );
-    }
+    // Note: We no longer hard-block "partner-only" listing on missing Timer credentials.
+    // The upstream API will enforce access restrictions based on provided credentials.
 
     // Mirror the RunSignup defaults as closely as possible.
     final params = <String, String>{

@@ -223,7 +223,35 @@ ThemeData get lightTheme => ThemeData(
     ),
   ),
   textTheme: _buildTextTheme(Brightness.light),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: LightModeColors.lightSurfaceVariant.withValues(alpha: 0.35),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: LightModeColors.lightOutline.withValues(alpha: 0.35), width: 1.6)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: LightModeColors.lightOutline.withValues(alpha: 0.25), width: 1.6)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: LightModeColors.lightPrimary, width: 2)),
+    labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+    helperStyle: GoogleFonts.inter(fontSize: 12, height: 1.35),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+      splashFactory: NoSplash.splashFactory,
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      side: BorderSide(color: LightModeColors.lightOutline.withValues(alpha: 0.35), width: 1.2),
+      textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+      splashFactory: NoSplash.splashFactory,
+    ),
+  ),
 );
+
 
 /// Dark theme with good contrast and readability
 ThemeData get darkTheme => ThemeData(
@@ -268,7 +296,35 @@ ThemeData get darkTheme => ThemeData(
     ),
   ),
   textTheme: _buildTextTheme(Brightness.dark),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: DarkModeColors.darkSurfaceVariant.withValues(alpha: 0.22),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: DarkModeColors.darkOutline.withValues(alpha: 0.4), width: 1.6)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: BorderSide(color: DarkModeColors.darkOutline.withValues(alpha: 0.28), width: 1.6)),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.md), borderSide: const BorderSide(color: DarkModeColors.darkPrimary, width: 2)),
+    labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
+    helperStyle: GoogleFonts.inter(fontSize: 12, height: 1.35),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+      splashFactory: NoSplash.splashFactory,
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+      side: BorderSide(color: DarkModeColors.darkOutline.withValues(alpha: 0.4), width: 1.2),
+      textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+      splashFactory: NoSplash.splashFactory,
+    ),
+  ),
 );
+
 
 /// Build text theme using Inter font family
 TextTheme _buildTextTheme(Brightness brightness) {

@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'models.dart';
+import 'rsu_firebase_auth_service.dart';
 import 'rsu_public_config_service.dart';
 import 'rsu_settings_store.dart';
+import 'timer_account.dart';
 import 'timer_account_service.dart';
 
 class RsuAppState extends ChangeNotifier {
@@ -43,6 +45,9 @@ class RsuAppState extends ChangeNotifier {
   String? _timerApiSecret;
   String? get timerApiSecret => _timerApiSecret;
 
+  String? _lastTimerCredentialHydrationError;
+  String? get lastTimerCredentialHydrationError => _lastTimerCredentialHydrationError;
+
   String? _rsuUserId;
   String? get rsuUserId => _rsuUserId;
 
@@ -71,7 +76,7 @@ class RsuAppState extends ChangeNotifier {
 
       await _loadPublicConfig(force: true);
 
-      await _hydrateTimerCredentialsFromFirestoreIfMissing();
+      await _hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
     } catch (e) {
       debugPrint('Bootstrap failed: $e');
     } finally {
@@ -101,39 +106,114 @@ class RsuAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _hydrateTimerCredentialsFromFirestoreIfMissing() async {
-    final userId = (_rsuUserId ?? '').trim();
-    if (userId.isEmpty) return;
+  Future<void> _ensureFirebaseSessionIfPossible() async {
+    if (FirebaseAuth.instance.currentUser != null) return;
+    final token = (_accessToken ?? '').trim();
+    if (token.isEmpty) return;
+    try {
+      final minted = await RsuFirebaseAuthService().signInWithRsuAccessToken(rsuAccessToken: token);
 
-    final hasLocalKey = (_timerApiKey ?? '').trim().isNotEmpty;
-    final hasLocalSecret = (_timerApiSecret ?? '').trim().isNotEmpty;
-    if (hasLocalKey && hasLocalSecret) return;
+      // Important: rsuUserId/identity should be treated as part of the RunSignup login session.
+      // If /Rest/user failed earlier, we can still populate identity from the Cloud Function response.
+      final currentUserId = (_rsuUserId ?? '').trim();
+      final mintedUserId = minted.rsuUserId.trim();
+      if (currentUserId.isEmpty && mintedUserId.isNotEmpty) {
+        await setRsuIdentity(rsuUserId: mintedUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
+      }
+    } catch (e) {
+      debugPrint('Silent Firebase sign-in failed (ignored): $e');
+    }
+  }
 
-    if (FirebaseAuth.instance.currentUser == null) return;
+  Future<void> _hydrateTimerCredentialsFromFirestore({required bool overwriteLocal}) async {
+    _lastTimerCredentialHydrationError = null;
+
+    await _ensureFirebaseSessionIfPossible();
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+
+    final rsuId = (_rsuUserId ?? '').trim();
+
+    // Prefer canonical lookup by Firebase uid.
+    RsuTimerAccount? acct;
+    try {
+      if (firebaseUser != null) {
+        acct = await _timerAccountService.getAccountByFirebaseUid(firebaseUser.uid);
+      }
+
+      // Backwards compatibility: older builds keyed the document by rsuUserId.
+      if (acct == null && rsuId.isNotEmpty) {
+        acct = await _timerAccountService.getAccount(rsuId);
+      }
+    } catch (e) {
+      // This is commonly permission-denied (rules) or unauthenticated.
+      _lastTimerCredentialHydrationError = e.toString();
+      debugPrint('Hydrate timer credentials: Firestore read failed: $e');
+
+      // If Firestore rules intentionally deny direct client reads (common for secrets),
+      // fall back to a privileged Cloud Function read.
+      if (firebaseUser != null) {
+        try {
+          final idToken = (await firebaseUser.getIdToken()) ?? '';
+          acct = await _timerAccountService.getAccountByFirebaseUidViaFunction(idToken: idToken);
+          if (acct != null) {
+            _lastTimerCredentialHydrationError = null;
+          }
+        } catch (e2) {
+          _lastTimerCredentialHydrationError = 'Firestore read failed: $e\nCloud Function fallback also failed: $e2';
+          debugPrint('Hydrate timer credentials: function fallback failed: $e2');
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
+    if (acct == null) return;
 
     try {
-      final acct = await _timerAccountService.getAccount(userId);
-      if (acct == null) return;
-
       final key = acct.timerApiKey.trim();
       final secret = acct.timerApiSecret;
       if (key.isEmpty || secret.trim().isEmpty) return;
 
+      final hasLocalKey = (_timerApiKey ?? '').trim().isNotEmpty;
+      final hasLocalSecret = (_timerApiSecret ?? '').trim().isNotEmpty;
+      final hasLocalBoth = hasLocalKey && hasLocalSecret;
+
+      if (!overwriteLocal && hasLocalBoth) return;
+
       await _store.setTimerApiKey(key);
       await _store.setTimerApiSecret(secret);
-
       _timerApiKey = key;
       _timerApiSecret = secret;
     } catch (e) {
-      debugPrint('Hydrate timer credentials from Firestore failed (ignored): $e');
+      _lastTimerCredentialHydrationError = e.toString();
+      debugPrint('Hydrate timer credentials from Firestore failed: $e');
     }
   }
 
-  Future<void> hydrateTimerCredentialsFromFirestoreIfMissing() async {
+  Future<void> hydrateTimerCredentialsFromFirestore({bool overwriteLocal = true}) async {
     final beforeKey = _timerApiKey;
     final beforeSecret = _timerApiSecret;
-    await _hydrateTimerCredentialsFromFirestoreIfMissing();
+    await _hydrateTimerCredentialsFromFirestore(overwriteLocal: overwriteLocal);
     if (beforeKey != _timerApiKey || beforeSecret != _timerApiSecret) notifyListeners();
+  }
+
+  Future<void> prepareForApiCall() async {
+    // Always hydrate credentials from Firestore (when logged in) right before hitting RSU APIs,
+    // so new devices and fresh sessions pull the latest timer creds.
+    await refreshAccessToken();
+    await hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
+  }
+
+  Future<void> ensureFirebaseSignedInOrThrow() async {
+    await _ensureFirebaseSessionIfPossible();
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) {
+      final hint = (_accessToken ?? '').trim().isEmpty
+          ? 'RSU access token is missing/expired.'
+          : 'RSU access token exists, but Firebase custom-token sign-in did not complete.';
+      throw StateError('No Firebase session. $hint');
+    }
   }
 
   Future<void> refreshAccessToken() async {
@@ -173,34 +253,75 @@ class RsuAppState extends ChangeNotifier {
     _rsuUserId = rsuUserId;
     _rsuIdentity = (email: email, firstName: firstName, lastName: lastName);
 
-    await _hydrateTimerCredentialsFromFirestoreIfMissing();
+    await _hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
 
     notifyListeners();
-    await _upsertTimerAccountIfPossible();
+    await _upsertTimerAccountIfPossible(throwOnFailure: false);
   }
 
-  Future<void> _upsertTimerAccountIfPossible() async {
-    final userId = (_rsuUserId ?? '').trim();
-    final ident = _rsuIdentity;
-    if (userId.isEmpty || ident == null) return;
+  Future<void> _upsertTimerAccountIfPossible({required bool throwOnFailure}) async {
+    // IMPORTANT: The canonical Firestore key is Firebase uid (not rsuUserId), because
+    // Firebase is the actual security boundary for reads/writes.
+    if (FirebaseAuth.instance.currentUser == null) {
+      await _ensureFirebaseSessionIfPossible();
+    }
+
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
+      if (throwOnFailure) {
+        final hint = (_accessToken ?? '').trim().isEmpty
+            ? 'RSU access token is missing/expired.'
+            : 'RSU access token exists, but custom-token sign-in failed (check Cloud Function rsuFirebaseLogin + Firebase Auth settings).';
+        throw StateError('Cannot save to Firestore yet: no Firebase session. $hint');
+      }
+      return;
+    }
 
     final key = (_timerApiKey ?? '').trim();
     final secret = (_timerApiSecret ?? '').trim();
 
-    if (key.isEmpty || secret.isEmpty) return;
+    if (key.isEmpty || secret.isEmpty) {
+      if (throwOnFailure) throw StateError('Timer API key/secret are empty — nothing to save to Firestore.');
+      return;
+    }
 
+    final rsuId = (_rsuUserId ?? '').trim();
+    final ident = _rsuIdentity;
+
+    // We must be able to link Timer API credentials to a specific RunSignup user.
+    // If rsuUserId is missing, refuse the explicit "sync to server" request.
+    if (throwOnFailure && rsuId.isEmpty) {
+      throw StateError(
+        'Cannot sync Timer API credentials to Firestore yet: missing rsuUserId.\n\n'
+        'This usually means the app has a RunSignup access token stored, but identity hydration has not completed.\n'
+        'Fix: sign out and sign in again, or ensure rsuFirebaseLogin is working so the app can hydrate rsuUserId.',
+      );
+    }
+
+    debugPrint('Upserting Timer API credentials to Firestore: ${RsuTimerAccountService.collectionPath}/${firebaseUser.uid} (rsuUserId=$rsuId)');
     try {
       await _timerAccountService.upsertAccount(
-        rsuUserId: userId,
-        email: ident.email,
-        firstName: ident.firstName,
-        lastName: ident.lastName,
+        firebaseUid: firebaseUser.uid,
+        rsuUserId: rsuId.isEmpty ? null : rsuId,
+        email: ident?.email,
+        firstName: ident?.firstName,
+        lastName: ident?.lastName,
         timerApiKey: key,
         timerApiSecret: secret,
       );
-    } catch (e) {
-      debugPrint('Firestore timer account upsert failed (ignored): $e');
+      debugPrint('Upserted Timer API credentials to Firestore OK.');
+    } catch (e, st) {
+      debugPrint('Firestore timer account upsert failed: $e\n$st');
+      if (throwOnFailure) rethrow;
     }
+  }
+
+  Future<void> syncTimerAccountToFirestore({bool throwOnFailure = true}) => _upsertTimerAccountIfPossible(throwOnFailure: throwOnFailure);
+
+  Future<bool> canSyncTimerAccountToFirestore() async {
+    final key = (_timerApiKey ?? '').trim();
+    final secret = (_timerApiSecret ?? '').trim();
+    return FirebaseAuth.instance.currentUser != null && key.isNotEmpty && secret.isNotEmpty;
   }
 
   Future<void> logout() async {
@@ -233,14 +354,14 @@ class RsuAppState extends ChangeNotifier {
     await _store.setTimerApiKey(value);
     _timerApiKey = (value ?? '').trim().isEmpty ? null : value!.trim();
     notifyListeners();
-    await _upsertTimerAccountIfPossible();
+    await _upsertTimerAccountIfPossible(throwOnFailure: false);
   }
 
   Future<void> setTimerApiSecret(String? value) async {
     await _store.setTimerApiSecret(value);
     _timerApiSecret = (value ?? '').trim().isEmpty ? null : value;
     notifyListeners();
-    await _upsertTimerAccountIfPossible();
+    await _upsertTimerAccountIfPossible(throwOnFailure: false);
   }
 
   Future<void> setRaceId(String value) async {

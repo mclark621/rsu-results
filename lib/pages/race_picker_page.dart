@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -52,7 +53,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     });
 
     try {
-      await appState.refreshCredentialsFromStore();
+      await appState.prepareForApiCall();
 
       final token = appState.accessToken;
       final range = appState.dateRange;
@@ -62,7 +63,35 @@ class _RacePickerPageState extends State<RacePickerPage> {
       final timerKey = appState.timerApiKey;
       final timerSecret = appState.timerApiSecret;
 
-      debugPrint('RacePicker: list races using creds: timerKey=${(timerKey ?? '').trim().isNotEmpty} timerSecret=${(timerSecret ?? '').trim().isNotEmpty}');
+      final timerKeyOk = (timerKey ?? '').trim().isNotEmpty;
+      final timerSecretOk = (timerSecret ?? '').trim().isNotEmpty;
+
+      debugPrint('RacePicker: list races using creds: timerKey=$timerKeyOk timerSecret=$timerSecretOk');
+
+      // Important: if Timer credentials are missing, the upstream `/rest/races` call will return the public
+      // catalog, which makes it look like we have access to “all races”. That’s misleading in the Timer
+      // workflow, where the creds should naturally restrict what you can access.
+      if (!timerKeyOk || !timerSecretOk) {
+        // Try to capture why hydration didn’t happen (common: Firebase sign-in or Firestore rules).
+        String firebaseInfo;
+        try {
+          await appState.ensureFirebaseSignedInOrThrow();
+          final u = FirebaseAuth.instance.currentUser;
+          firebaseInfo = 'firebaseSignedIn: true\nfirebaseUid: ${u?.uid ?? '<null>'}';
+        } catch (e) {
+          firebaseInfo = 'firebaseSignedIn: false\nfirebaseError: $e';
+        }
+
+        final hydrateErr = (appState.lastTimerCredentialHydrationError ?? '').trim();
+        final hydrateInfo = hydrateErr.isEmpty ? '' : '\n\nHydration error:\n$hydrateErr';
+
+        throw Exception(
+          'Timer API credentials are missing on this device.\n\n'
+          'Expected: rsu_api_key (query param) + X-RSU-API-SECRET (header).\n'
+          'Fix: open Global Settings and set them, or ensure they exist in Firestore so this device can hydrate them after login.\n\n'
+          '$firebaseInfo$hydrateInfo',
+        );
+      }
 
       final api = RsuApi();
       final result = await api.listRacesWithResultsWithDebug(
@@ -70,7 +99,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
         range: range,
         timerApiKey: timerKey,
         timerApiSecret: timerSecret,
-        onlyPartnerRaces: true,
+        onlyPartnerRaces: false,
         onlyRacesWithResults: true,
       );
       if (!mounted) return;
@@ -86,6 +115,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
           result.debug.toMultilineString(),
           '',
           '--- credential presence (local) ---',
+          'firebaseSignedIn: ${FirebaseAuth.instance.currentUser != null}',
           'timerApiKey: ${timerKeySet ? 'set' : 'missing'}',
           'timerApiSecret: ${timerSecretSet ? 'set' : 'missing'}',
         ].join('\n');

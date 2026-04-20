@@ -74,8 +74,15 @@ class _OAuthCallbackPageState extends State<OAuthCallbackPage> {
       // This gives us a stable Firebase uid (`rsu:<user_id>`) for Firestore security rules and per-user data.
       try {
         final firebaseAuth = RsuFirebaseAuthService();
-        await firebaseAuth.signInWithRsuAccessToken(rsuAccessToken: token.accessToken);
+        final minted = await firebaseAuth.signInWithRsuAccessToken(rsuAccessToken: token.accessToken);
         debugPrint('OAuth callback: Firebase sign-in ok (custom token).');
+
+        // If /Rest/user failed above, still persist identity from the minted custom token response.
+        if ((appState.rsuUserId ?? '').trim().isEmpty && minted.rsuUserId.trim().isNotEmpty) {
+          await appState.setRsuIdentity(rsuUserId: minted.rsuUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
+          debugPrint('OAuth callback: rsu identity hydrated from rsuFirebaseLogin user payload.');
+        }
+
         if (mounted) setState(() => _firebaseAuthError = null);
       } catch (e) {
         debugPrint('OAuth callback: Firebase sign-in failed: $e');
