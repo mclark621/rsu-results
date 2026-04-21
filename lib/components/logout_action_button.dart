@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
+import 'package:rsu_results/theme.dart';
 
 class LogoutActionButton extends StatelessWidget {
   final Color? color;
@@ -21,29 +22,49 @@ class LogoutActionButton extends StatelessWidget {
       builder: (context) {
         const title = 'Log out?';
         const subtitle = 'This will clear your stored OAuth token on this device.';
+        final textTheme = Theme.of(context).textTheme;
 
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => context.pop(true),
-                  icon: Icon(Icons.logout, color: cs.onPrimary),
-                  label: Text('Log out', style: TextStyle(color: cs.onPrimary)),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(title, style: textTheme.titleLarge, textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    Text(subtitle, style: textTheme.bodyMedium, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => context.pop(true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.actionOrange,
+                        foregroundColor: AppColors.onActionOrange,
+                        minimumSize: const Size.fromHeight(54),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      icon: const Icon(Icons.logout, color: AppColors.onActionOrange),
+                      label: const Text('Log out', style: TextStyle(color: AppColors.onActionOrange)),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton(
+                      onPressed: () => context.pop(false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: cs.primary)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: () => context.pop(false),
-                  child: Text('Cancel', style: TextStyle(color: cs.primary)),
-                ),
-              ],
+              ),
             ),
           ),
         );

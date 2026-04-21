@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/components/logout_action_button.dart';
 import 'package:rsu_results/rsu/app_state.dart';
+import 'package:rsu_results/theme.dart';
 
 class GlobalOAuthSettingsPage extends StatefulWidget {
   const GlobalOAuthSettingsPage({super.key});
@@ -41,6 +43,21 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
     super.dispose();
   }
 
+  InputDecoration _fieldDecoration(BuildContext context, {required String label, String? helperText, Widget? suffixIcon}) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      labelText: label,
+      helperText: helperText,
+      filled: true,
+      fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.6), width: 2)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.4), width: 2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.primary, width: 2)),
+      suffixIcon: suffixIcon,
+    );
+  }
+
   Future<void> _load() async {
     try {
       final app = context.read<RsuAppState>();
@@ -54,7 +71,8 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
         _clientSecret.text = clientSecret;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('GlobalOAuthSettingsPage load failed: $e\n$st');
       if (!mounted) return;
       setState(() => _loading = false);
       CopyableSnackBar.show(context, 'Failed to load settings: $e');
@@ -75,8 +93,6 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
       await app.setTimerApiSecretFromSettings(timerApiSecret.trim().isEmpty ? null : timerApiSecret);
       await app.setClientSecret(clientSecret);
 
-      // IMPORTANT: Don’t silently pretend we saved to the server.
-      // If the user is signed in and has an RSU identity, this should create/update the Firestore doc.
       await app.syncTimerAccountToFirestore(throwOnFailure: true);
 
       final reloadedTimerKey = await app.getTimerApiKey();
@@ -94,8 +110,6 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
       debugPrint('GlobalOAuthSettingsPage save failed: $e\n$st');
       if (!mounted) return;
 
-      // On web, Firestore errors can surface as a generic “converted Future” exception.
-      // Still try to unwrap the useful fields when possible.
       if (e is FirebaseException) {
         final msg = [e.code, e.message].where((v) => (v ?? '').trim().isNotEmpty).join(': ');
         CopyableSnackBar.show(context, 'Failed to save: $msg');
@@ -132,108 +146,102 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
         leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: const [LogoutActionButton()],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _loading
-                    ? const LinearProgressIndicator()
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text('RunSignup credentials', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 12),
-                          Text(
-                            'client_id / redirect_uri / scope are loaded automatically from Firestore (public_config/rsu) and are not shown here.',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 18),
-                          Text('OAuth token exchange (temporary)', style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _clientSecret,
-                            decoration: InputDecoration(
-                              labelText: 'client_secret',
-                              helperText: 'Only required for some RunSignup apps. Hidden by default. You can copy this to store in Firebase Secret Manager.',
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Copy',
-                                    onPressed: () => _copy('client_secret', _clientSecret.text),
-                                    icon: const Icon(Icons.copy_outlined),
-                                  ),
-                                  IconButton(
-                                    tooltip: _showClientSecret ? 'Hide' : 'Show',
-                                    onPressed: () => setState(() => _showClientSecret = !_showClientSecret),
-                                    icon: Icon(_showClientSecret ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            obscureText: !_showClientSecret,
-                            enableSuggestions: false,
-                            autocorrect: false,
-                          ),
-                          const SizedBox(height: 18),
-                          Text('Timer API (v2) credentials', style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _timerApiKey,
-                            decoration: InputDecoration(
-                              labelText: 'rsu_api_key (query parameter)',
-                              suffixIcon: IconButton(
-                                tooltip: 'Copy',
-                                onPressed: () => _copy('rsu_api_key', _timerApiKey.text),
-                                icon: const Icon(Icons.copy_outlined),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _timerApiSecret,
-                            decoration: InputDecoration(
-                              labelText: 'X-RSU-API-SECRET (header)',
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Copy',
-                                    onPressed: () => _copy('X-RSU-API-SECRET', _timerApiSecret.text),
-                                    icon: const Icon(Icons.copy_outlined),
-                                  ),
-                                  IconButton(
-                                    tooltip: _showTimerSecret ? 'Hide' : 'Show',
-                                    onPressed: () => setState(() => _showTimerSecret = !_showTimerSecret),
-                                    icon: Icon(_showTimerSecret ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            obscureText: !_showTimerSecret,
-                            enableSuggestions: false,
-                            autocorrect: false,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'RunSignup requires the key as a GET parameter named rsu_api_key, and the secret as an HTTP header named X-RSU-API-SECRET.',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const Spacer(),
-                          FilledButton.icon(
-                            onPressed: _saving ? null : _save,
-                            icon: Icon(Icons.save_outlined, color: cs.onPrimary),
-                            label: Text(_saving ? 'Saving…' : 'Save', style: TextStyle(color: cs.onPrimary)),
-                          ),
-                        ],
-                      ),
+      body: CenteredSurfacePanel(
+        maxWidth: 720,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('RunSignup credentials', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 12),
+            Text(
+              'client_id / redirect_uri / scope are loaded automatically from Firestore (public_config/rsu) and are not shown here.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            if (_loading) ...[
+              const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: 12),
+            ],
+            Text('OAuth token exchange (temporary)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _clientSecret,
+              decoration: _fieldDecoration(
+                context,
+                label: 'client_secret',
+                helperText: 'Only required for some RunSignup apps. Hidden by default. You can copy this to store in Firebase Secret Manager.',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(tooltip: 'Copy', onPressed: () => _copy('client_secret', _clientSecret.text), icon: Icon(Icons.copy_outlined, color: cs.primary)),
+                    IconButton(
+                      tooltip: _showClientSecret ? 'Hide' : 'Show',
+                      onPressed: () => setState(() => _showClientSecret = !_showClientSecret),
+                      icon: Icon(_showClientSecret ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: cs.primary),
+                    ),
+                  ],
+                ),
+              ),
+              obscureText: !_showClientSecret,
+              enableSuggestions: false,
+              autocorrect: false,
+            ),
+            const SizedBox(height: 18),
+            Text('Timer API (v2) credentials', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _timerApiKey,
+              decoration: _fieldDecoration(
+                context,
+                label: 'rsu_api_key (query parameter)',
+                suffixIcon: IconButton(tooltip: 'Copy', onPressed: () => _copy('rsu_api_key', _timerApiKey.text), icon: Icon(Icons.copy_outlined, color: cs.primary)),
               ),
             ),
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _timerApiSecret,
+              decoration: _fieldDecoration(
+                context,
+                label: 'X-RSU-API-SECRET (header)',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(tooltip: 'Copy', onPressed: () => _copy('X-RSU-API-SECRET', _timerApiSecret.text), icon: Icon(Icons.copy_outlined, color: cs.primary)),
+                    IconButton(
+                      tooltip: _showTimerSecret ? 'Hide' : 'Show',
+                      onPressed: () => setState(() => _showTimerSecret = !_showTimerSecret),
+                      icon: Icon(_showTimerSecret ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: cs.primary),
+                    ),
+                  ],
+                ),
+              ),
+              obscureText: !_showTimerSecret,
+              enableSuggestions: false,
+              autocorrect: false,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'RunSignup requires the key as a GET parameter named rsu_api_key, and the secret as an HTTP header named X-RSU-API-SECRET.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionOrange,
+                foregroundColor: AppColors.onActionOrange,
+                minimumSize: const Size.fromHeight(54),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                splashFactory: NoSplash.splashFactory,
+              ),
+              onPressed: (_saving || _loading) ? null : _save,
+              icon: Icon(Icons.save_outlined, color: AppColors.onActionOrange),
+              label: Text(
+                _saving ? 'Saving…' : 'Save',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppColors.onActionOrange),
+              ),
+            ),
+          ],
         ),
       ),
     );

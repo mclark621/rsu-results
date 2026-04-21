@@ -19,6 +19,8 @@ class RsuAppState extends ChangeNotifier {
       _timerAccountService = timerAccountService ?? RsuTimerAccountService(),
       _publicConfigService = publicConfigService ?? RsuPublicConfigService();
 
+  Future<void>? _bootstrapFuture;
+
   bool _isBootstrapped = false;
   bool get isBootstrapped => _isBootstrapped;
 
@@ -59,6 +61,15 @@ class RsuAppState extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     if (_isBootstrapped) return;
+    final existing = _bootstrapFuture;
+    if (existing != null) return existing;
+
+    final f = _bootstrapImpl();
+    _bootstrapFuture = f;
+    return f;
+  }
+
+  Future<void> _bootstrapImpl() async {
     try {
       _accessToken = await _store.getAccessToken();
       _dateRange = await _store.getDateRange();
@@ -78,6 +89,7 @@ class RsuAppState extends ChangeNotifier {
       debugPrint('Bootstrap failed: $e');
     } finally {
       _isBootstrapped = true;
+      _bootstrapFuture = null;
       notifyListeners();
     }
   }
@@ -170,6 +182,11 @@ class RsuAppState extends ChangeNotifier {
   }
 
   Future<void> prepareForApiCall() async {
+    // Ensure we’ve loaded whatever is already on-device (localStorage/SharedPreferences)
+    // before we decide credentials are “missing”. This matters when the user lands directly
+    // on /login (skipping / bootstrap) then continues into the app.
+    if (!_isBootstrapped) await bootstrap();
+
     // Always hydrate credentials from Firestore (when logged in) right before hitting RSU APIs,
     // so new devices and fresh sessions pull the latest timer creds.
     await refreshAccessToken();
