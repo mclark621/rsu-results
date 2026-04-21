@@ -45,9 +45,6 @@ class RsuAppState extends ChangeNotifier {
   String? _timerApiSecret;
   String? get timerApiSecret => _timerApiSecret;
 
-  String? _lastTimerCredentialHydrationError;
-  String? get lastTimerCredentialHydrationError => _lastTimerCredentialHydrationError;
-
   String? _rsuUserId;
   String? get rsuUserId => _rsuUserId;
 
@@ -126,8 +123,6 @@ class RsuAppState extends ChangeNotifier {
   }
 
   Future<void> _hydrateTimerCredentialsFromFirestore({required bool overwriteLocal}) async {
-    _lastTimerCredentialHydrationError = null;
-
     await _ensureFirebaseSessionIfPossible();
     final firebaseUser = FirebaseAuth.instance.currentUser;
 
@@ -135,42 +130,19 @@ class RsuAppState extends ChangeNotifier {
 
     // Prefer canonical lookup by Firebase uid.
     RsuTimerAccount? acct;
-    try {
-      if (firebaseUser != null) {
-        acct = await _timerAccountService.getAccountByFirebaseUid(firebaseUser.uid);
-      }
+    if (firebaseUser != null) {
+      acct = await _timerAccountService.getAccountByFirebaseUid(firebaseUser.uid);
+    }
 
-      // Backwards compatibility: older builds keyed the document by rsuUserId.
-      if (acct == null && rsuId.isNotEmpty) {
-        acct = await _timerAccountService.getAccount(rsuId);
-      }
-    } catch (e) {
-      // This is commonly permission-denied (rules) or unauthenticated.
-      _lastTimerCredentialHydrationError = e.toString();
-      debugPrint('Hydrate timer credentials: Firestore read failed: $e');
-
-      // If Firestore rules intentionally deny direct client reads (common for secrets),
-      // fall back to a privileged Cloud Function read.
-      if (firebaseUser != null) {
-        try {
-          final idToken = (await firebaseUser.getIdToken()) ?? '';
-          acct = await _timerAccountService.getAccountByFirebaseUidViaFunction(idToken: idToken);
-          if (acct != null) {
-            _lastTimerCredentialHydrationError = null;
-          }
-        } catch (e2) {
-          _lastTimerCredentialHydrationError = 'Firestore read failed: $e\nCloud Function fallback also failed: $e2';
-          debugPrint('Hydrate timer credentials: function fallback failed: $e2');
-          return;
-        }
-      } else {
-        return;
-      }
+    // Backwards compatibility: older builds keyed the document by rsuUserId.
+    if (acct == null && rsuId.isNotEmpty) {
+      acct = await _timerAccountService.getAccount(rsuId);
     }
 
     if (acct == null) return;
 
     try {
+
       final key = acct.timerApiKey.trim();
       final secret = acct.timerApiSecret;
       if (key.isEmpty || secret.trim().isEmpty) return;
@@ -186,8 +158,7 @@ class RsuAppState extends ChangeNotifier {
       _timerApiKey = key;
       _timerApiSecret = secret;
     } catch (e) {
-      _lastTimerCredentialHydrationError = e.toString();
-      debugPrint('Hydrate timer credentials from Firestore failed: $e');
+      debugPrint('Hydrate timer credentials from Firestore failed (ignored): $e');
     }
   }
 
@@ -203,17 +174,6 @@ class RsuAppState extends ChangeNotifier {
     // so new devices and fresh sessions pull the latest timer creds.
     await refreshAccessToken();
     await hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
-  }
-
-  Future<void> ensureFirebaseSignedInOrThrow() async {
-    await _ensureFirebaseSessionIfPossible();
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) {
-      final hint = (_accessToken ?? '').trim().isEmpty
-          ? 'RSU access token is missing/expired.'
-          : 'RSU access token exists, but Firebase custom-token sign-in did not complete.';
-      throw StateError('No Firebase session. $hint');
-    }
   }
 
   Future<void> refreshAccessToken() async {

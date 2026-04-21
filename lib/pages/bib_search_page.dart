@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -131,7 +130,6 @@ class _BibSearchPageState extends State<BibSearchPage> {
     final race = _race;
     final theme = _theme;
     final cs = Theme.of(context).colorScheme;
-    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
 
     Color? background;
     if (theme != null) background = _colorFromHex(theme.backgroundColorHex);
@@ -142,7 +140,7 @@ class _BibSearchPageState extends State<BibSearchPage> {
         title: const Text('Search Results'),
         leading: IconButton(onPressed: () => context.go(AppRoutes.races), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
-          if (isLoggedIn) IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
+          IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
           IconButton(tooltip: 'Race settings', onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'), icon: Icon(Icons.settings_outlined, color: cs.primary)),
           const LogoutActionButton(),
         ],
@@ -246,6 +244,18 @@ class _LegacyBibSearchCard extends StatelessWidget {
               onSubmitted: onSearch,
             ),
             const SizedBox(height: 14),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionOrange,
+                foregroundColor: AppColors.onActionOrange,
+                minimumSize: const Size.fromHeight(54),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: onSearch,
+              child: Text('Find Results', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppColors.onActionOrange)),
+            ),
+            const SizedBox(height: 8),
             Text(
               'Tip: enter bib digits to search by bib, or type a name to search by last name.',
               textAlign: TextAlign.center,
@@ -290,19 +300,13 @@ class _UnifiedSearchSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: _LegacyTextField(
-              controller: controller,
-              focusNode: focusNode,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.search,
-              hintText: hint,
-              onSearchPressed: onSubmitted,
-              onSubmitted: (_) => onSubmitted(),
-            ),
-          ),
+        _LegacyTextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.search,
+          hintText: hint,
+          onSubmitted: (_) => onSubmitted(),
         ),
         const SizedBox(height: 10),
         AnimatedSwitcher(
@@ -360,7 +364,6 @@ class _LegacyTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final TextInputAction? textInputAction;
   final String hintText;
-  final VoidCallback onSearchPressed;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
@@ -369,7 +372,6 @@ class _LegacyTextField extends StatelessWidget {
     required this.focusNode,
     required this.keyboardType,
     required this.hintText,
-    required this.onSearchPressed,
     this.textInputAction,
     this.onChanged,
     this.onSubmitted,
@@ -386,11 +388,12 @@ class _LegacyTextField extends StatelessWidget {
       textInputAction: textInputAction,
       decoration: InputDecoration(
         hintText: hintText,
-        suffixIcon: IconButton(
-          tooltip: 'Find',
-          onPressed: onSearchPressed,
-          icon: Icon(Icons.search, color: cs.primary),
-        ),
+        filled: true,
+        fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.6), width: 2)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.4), width: 2)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.primary, width: 2)),
       ),
       onChanged: onChanged,
       onSubmitted: onSubmitted,

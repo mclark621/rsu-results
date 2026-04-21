@@ -1,9 +1,5 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:rsu_results/rsu/timer_account.dart';
 
@@ -11,16 +7,8 @@ class RsuTimerAccountService {
   static const collectionPath = 'rsu_timer_accounts';
 
   final FirebaseFirestore _db;
-  final http.Client _client;
 
-  RsuTimerAccountService({FirebaseFirestore? db, http.Client? client}) : _db = db ?? FirebaseFirestore.instance, _client = client ?? http.Client();
-
-  Uri _functionUrl({String region = 'us-central1', required String functionName}) {
-    final app = Firebase.app();
-    final projectId = (app.options.projectId ?? '').trim();
-    if (projectId.isEmpty) throw Exception('Missing Firebase projectId (Firebase not configured?)');
-    return Uri.parse('https://$region-$projectId.cloudfunctions.net/$functionName');
-  }
+  RsuTimerAccountService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   /// New canonical storage key: Firebase Auth uid.
   ///
@@ -34,42 +22,11 @@ class RsuTimerAccountService {
   Future<RsuTimerAccount?> getAccountByFirebaseUid(String firebaseUid) async {
     final uid = firebaseUid.trim();
     if (uid.isEmpty) return null;
-    final snap = await _docByFirebaseUid(uid).get();
-    final data = snap.data();
-    if (data == null) return null;
-    return RsuTimerAccount.fromJson(data);
-  }
-
-  /// Privileged fetch via Cloud Function (admin SDK) for cases where Firestore rules
-  /// intentionally deny direct client reads.
-  Future<RsuTimerAccount?> getAccountByFirebaseUidViaFunction({required String idToken}) async {
-    final t = idToken.trim();
-    if (t.isEmpty) throw Exception('Missing Firebase ID token');
-
-    final uri = _functionUrl(functionName: 'rsuGetTimerAccount');
-    final resp = await _client.post(uri, headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $t',
-    }, body: jsonEncode({}));
-
-    final bodyText = utf8.decode(resp.bodyBytes, allowMalformed: true);
-    if (resp.statusCode == 404) return null;
-    if (resp.statusCode != 200) {
-      debugPrint('rsuGetTimerAccount failed HTTP ${resp.statusCode}: $bodyText');
-      throw Exception('rsuGetTimerAccount failed (HTTP ${resp.statusCode}). Body: ${bodyText.isEmpty ? '<empty>' : bodyText}');
-    }
-
-    final decoded = jsonDecode(bodyText);
-    if (decoded is! Map) throw Exception('Unexpected rsuGetTimerAccount response');
-
-    final acct = decoded['timerAccount'];
-    if (acct is! Map) return null;
-    return RsuTimerAccount.fromJson(acct.cast<String, dynamic>());
-  }
-
-  Future<RsuTimerAccount?> getAccountByFirebaseUidSafe(String firebaseUid) async {
     try {
-      return await getAccountByFirebaseUid(firebaseUid);
+      final snap = await _docByFirebaseUid(uid).get();
+      final data = snap.data();
+      if (data == null) return null;
+      return RsuTimerAccount.fromJson(data);
     } catch (e) {
       debugPrint('getAccountByFirebaseUid failed: $e');
       return null;
@@ -77,15 +34,11 @@ class RsuTimerAccountService {
   }
 
   Future<RsuTimerAccount?> getAccount(String rsuUserId) async {
-    final snap = await _docByRsuUserId(rsuUserId).get();
-    final data = snap.data();
-    if (data == null) return null;
-    return RsuTimerAccount.fromJson(data);
-  }
-
-  Future<RsuTimerAccount?> getAccountSafe(String rsuUserId) async {
     try {
-      return await getAccount(rsuUserId);
+      final snap = await _docByRsuUserId(rsuUserId).get();
+      final data = snap.data();
+      if (data == null) return null;
+      return RsuTimerAccount.fromJson(data);
     } catch (e) {
       debugPrint('getAccount failed: $e');
       return null;

@@ -72,24 +72,10 @@ class _RacePickerPageState extends State<RacePickerPage> {
       // catalog, which makes it look like we have access to “all races”. That’s misleading in the Timer
       // workflow, where the creds should naturally restrict what you can access.
       if (!timerKeyOk || !timerSecretOk) {
-        // Try to capture why hydration didn’t happen (common: Firebase sign-in or Firestore rules).
-        String firebaseInfo;
-        try {
-          await appState.ensureFirebaseSignedInOrThrow();
-          final u = FirebaseAuth.instance.currentUser;
-          firebaseInfo = 'firebaseSignedIn: true\nfirebaseUid: ${u?.uid ?? '<null>'}';
-        } catch (e) {
-          firebaseInfo = 'firebaseSignedIn: false\nfirebaseError: $e';
-        }
-
-        final hydrateErr = (appState.lastTimerCredentialHydrationError ?? '').trim();
-        final hydrateInfo = hydrateErr.isEmpty ? '' : '\n\nHydration error:\n$hydrateErr';
-
         throw Exception(
           'Timer API credentials are missing on this device.\n\n'
           'Expected: rsu_api_key (query param) + X-RSU-API-SECRET (header).\n'
-          'Fix: open Global Settings and set them, or ensure they exist in Firestore so this device can hydrate them after login.\n\n'
-          '$firebaseInfo$hydrateInfo',
+          'Fix: open Global Settings and set them, or ensure they exist in Firestore so this device can hydrate them after login.',
         );
       }
 

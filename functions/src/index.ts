@@ -32,5 +32,3 @@ setGlobalOptions({ maxInstances: 10 });
 export * from "./rsuProxy";
 export * from "./rsuFirebaseLogin";
 export * from "./rsuTokenExchange";
-
-export * from "./rsuGetTimerAccount";
