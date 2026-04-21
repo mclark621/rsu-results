@@ -317,12 +317,14 @@ class RsuAppState extends ChangeNotifier {
     await _store.clearRsuIdentity();
     await _store.clearDateRange();
     await _store.clearRaceId();
+    await _store.clearLogoutCode();
 
     _accessToken = null;
     _rsuUserId = null;
     _rsuIdentity = null;
     _dateRange = null;
     _raceId = null;
+    _logoutCode = null;
     notifyListeners();
   }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -295,6 +296,7 @@ class _UnifiedSearchSection extends StatelessWidget {
               keyboardType: TextInputType.text,
               textInputAction: TextInputAction.search,
               hintText: hint,
+              inputFormatters: const [_FirstCharNumericDigitsOnlyFormatter()],
               onSubmitted: (_) => onSubmitted(),
             );
 
@@ -378,6 +380,25 @@ class _UnifiedSearchSection extends StatelessWidget {
   }
 }
 
+class _FirstCharNumericDigitsOnlyFormatter extends TextInputFormatter {
+  const _FirstCharNumericDigitsOnlyFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+
+    final firstChar = text.characters.first;
+    final startsWithDigit = int.tryParse(firstChar) != null;
+    if (!startsWithDigit) return newValue;
+
+    final digitsOnly = text.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly == text) return newValue;
+
+    return TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
+  }
+}
+
 class _LegacyTextField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -386,6 +407,7 @@ class _LegacyTextField extends StatelessWidget {
   final String hintText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _LegacyTextField({
     required this.controller,
@@ -395,6 +417,7 @@ class _LegacyTextField extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.onSubmitted,
+    this.inputFormatters,
   });
 
   @override
@@ -406,6 +429,7 @@ class _LegacyTextField extends StatelessWidget {
       focusNode: focusNode,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hintText,
         filled: true,

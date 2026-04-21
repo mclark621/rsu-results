@@ -15,6 +15,7 @@ import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
 import 'package:rsu_results/rsu/rsu_api.dart';
+import 'package:rsu_results/theme.dart';
 
 class ResultsPage extends StatefulWidget {
   final String raceId;
@@ -238,7 +239,7 @@ class _ResultsPageState extends State<ResultsPage> {
         appBar: AppBar(title: const Text('Results'), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
       body: SafeArea(
         child: _loading
-            ? const Center(child: LinearProgressIndicator())
+            ? const Center(child: SizedBox(width: 44, height: 44, child: CircularProgressIndicator(strokeWidth: 3)))
             : _error != null
                 ? Padding(
                     padding: const EdgeInsets.all(16),
@@ -525,9 +526,20 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       alignment: WrapAlignment.center,
                       children: [
                         FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.actionOrange,
+                            foregroundColor: AppColors.onActionOrange,
+                            minimumSize: const Size(200, 54),
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            splashFactory: NoSplash.splashFactory,
+                          ),
                           onPressed: widget.onTapName,
-                          icon: Icon(Icons.arrow_back, color: cs.onPrimary),
-                          label: Text('Back to Search', style: TextStyle(color: cs.onPrimary)),
+                          icon: Icon(Icons.arrow_back, color: AppColors.onActionOrange),
+                          label: Text(
+                            'Back to Search',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.4, color: AppColors.onActionOrange),
+                          ),
                         ),
                       ],
                     ),
