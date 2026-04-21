@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -14,7 +15,6 @@ import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
 import 'package:rsu_results/rsu/rsu_api.dart';
-import 'package:rsu_results/theme.dart';
 
 class ResultsPage extends StatefulWidget {
   final String raceId;
@@ -231,14 +231,31 @@ class _ResultsPageState extends State<ResultsPage> {
     return Listener(
       onPointerDown: (_) => _armAutoBackTimer(),
       onPointerMove: (_) => _armAutoBackTimer(),
-      child: PopScope(
-        canPop: false,
-        child: Scaffold(
+      child: Scaffold(
         backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const SizedBox.shrink(), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
+        appBar: AppBar(
+        title: const Text('Results'),
+        leading: IconButton(
+          onPressed: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
+          icon: Icon(Icons.arrow_back, color: cs.primary),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Global settings',
+            onPressed: () => context.push(AppRoutes.settingsGlobal),
+            icon: Icon(Icons.manage_accounts_outlined, color: cs.primary),
+          ),
+          IconButton(
+            tooltip: 'Race settings',
+            onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'),
+            icon: Icon(Icons.settings_outlined, color: cs.primary),
+          ),
+          const LogoutActionButton(),
+        ],
+      ),
       body: SafeArea(
         child: _loading
-            ? const Center(child: SizedBox(width: 44, height: 44, child: CircularProgressIndicator(strokeWidth: 3)))
+            ? const Center(child: LinearProgressIndicator())
             : _error != null
                 ? Padding(
                     padding: const EdgeInsets.all(16),
@@ -253,13 +270,12 @@ class _ResultsPageState extends State<ResultsPage> {
                             child: CandidatePickerPanel(
                               candidates: _candidates,
                               onPick: (bib) => context.go('${AppRoutes.results}?raceId=${widget.raceId}&searchType=bib&bib=$bib'),
-                              onCancel: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
+                              onCancel: () => context.pop(),
                             ),
                           ),
                         ),
                       )
                     : ResultsLegacyLikeView(race: _race, theme: raceTheme, results: _results, onTapName: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}')),
-        ),
       ),
     ),
     );
@@ -515,7 +531,7 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       child: Icon(Icons.error_outline, color: cs.onErrorContainer, size: 36),
                     ),
                     const SizedBox(height: 12),
-                    Text('No Results Found', style: TextStyle(fontSize: 28 * scale, color: cs.onSurface, height: 1.1, fontWeight: FontWeight.w700)),
+                    Text('No Results Found', style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, color: cs.onSurface, height: 1.1)),
                     const SizedBox(height: 8),
                     Text('We couldn’t find results for that bib/name for this event. Please verify the search and try again.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.45), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
@@ -525,20 +541,9 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       alignment: WrapAlignment.center,
                       children: [
                         FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.actionOrange,
-                            foregroundColor: AppColors.onActionOrange,
-                            minimumSize: const Size(200, 54),
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            splashFactory: NoSplash.splashFactory,
-                          ),
                           onPressed: widget.onTapName,
-                          icon: Icon(Icons.arrow_back, color: AppColors.onActionOrange),
-                          label: Text(
-                            'Back to Search',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.4, color: AppColors.onActionOrange),
-                          ),
+                          icon: Icon(Icons.arrow_back, color: cs.onPrimary),
+                          label: Text('Back to Search', style: TextStyle(color: cs.onPrimary)),
                         ),
                       ],
                     ),
@@ -614,17 +619,17 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                     text: '${selectedResult.firstName} ${selectedResult.lastName}'.trim(),
                     fill: nameColor,
                     stroke: Colors.white,
-                    style: TextStyle(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2, fontWeight: FontWeight.w800),
+                    style: GoogleFonts.alfaSlabOne(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
 
-              Text(selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime, style: TextStyle(fontSize: 86 * scale, height: 1.0, color: dataColor, fontWeight: FontWeight.w800, letterSpacing: 0.6), textAlign: TextAlign.center),
+              Text(selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime, style: GoogleFonts.rubikDistressed(fontSize: 86 * scale, height: 1.0, color: dataColor), textAlign: TextAlign.center),
               const SizedBox(height: 16),
 
-              Text('${selectedResult.eventName} FINISHER', style: TextStyle(fontSize: 28 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700, letterSpacing: 0.4), textAlign: TextAlign.center),
+              Text('${selectedResult.eventName} FINISHER', style: GoogleFonts.rubikDistressed(fontSize: 28 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
               const SizedBox(height: 22),
 
               ResultsMetricSection(label: 'BIB NUMBER', value: selectedResult.bib.isEmpty ? '-' : selectedResult.bib, labelColor: labelColor, dataColor: dataColor, scale: scale),
@@ -702,9 +707,9 @@ class ResultsMetricSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 28 * scale, height: 1.1, color: labelColor, fontWeight: FontWeight.w800, letterSpacing: 0.2), textAlign: TextAlign.center),
+        Text(label, style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, height: 1.1, color: labelColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
         const SizedBox(height: 6),
-        Text(value, style: TextStyle(fontSize: 22 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700, letterSpacing: 0.2), textAlign: TextAlign.center),
+        Text(value, style: GoogleFonts.rubikDistressed(fontSize: 22 * scale, height: 1.1, color: dataColor), textAlign: TextAlign.center),
       ],
     );
   }

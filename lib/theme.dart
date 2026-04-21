@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppSpacing {
   // Spacing values
@@ -269,34 +270,76 @@ ThemeData get darkTheme => ThemeData(
   textTheme: _buildTextTheme(Brightness.dark),
 );
 
-/// Build text theme using a single consistent font stack (system fonts).
-///
-/// We intentionally avoid `google_fonts` here to keep Android/iOS release builds
-/// stable across Flutter/Dart versions.
+/// Build text theme using Inter font family
 TextTheme _buildTextTheme(Brightness brightness) {
-  TextStyle base({double? size, FontWeight? weight, double? letterSpacing, double? height, Color? color}) => TextStyle(
-    fontSize: size,
-    fontWeight: weight,
-    letterSpacing: letterSpacing,
-    height: height,
-    color: color,
-  );
-
   return TextTheme(
-    displayLarge: base(size: FontSizes.displayLarge, weight: FontWeight.w400, letterSpacing: -0.25),
-    displayMedium: base(size: FontSizes.displayMedium, weight: FontWeight.w400),
-    displaySmall: base(size: FontSizes.displaySmall, weight: FontWeight.w400),
-    headlineLarge: base(size: FontSizes.headlineLarge, weight: FontWeight.w600, letterSpacing: -0.5),
-    headlineMedium: base(size: FontSizes.headlineMedium, weight: FontWeight.w600),
-    headlineSmall: base(size: FontSizes.headlineSmall, weight: FontWeight.w600),
-    titleLarge: base(size: FontSizes.titleLarge, weight: FontWeight.w600),
-    titleMedium: base(size: FontSizes.titleMedium, weight: FontWeight.w500),
-    titleSmall: base(size: FontSizes.titleSmall, weight: FontWeight.w500),
-    labelLarge: base(size: FontSizes.labelLarge, weight: FontWeight.w500, letterSpacing: 0.1),
-    labelMedium: base(size: FontSizes.labelMedium, weight: FontWeight.w500, letterSpacing: 0.5),
-    labelSmall: base(size: FontSizes.labelSmall, weight: FontWeight.w500, letterSpacing: 0.5),
-    bodyLarge: base(size: FontSizes.bodyLarge, weight: FontWeight.w400, letterSpacing: 0.15),
-    bodyMedium: base(size: FontSizes.bodyMedium, weight: FontWeight.w400, letterSpacing: 0.25),
-    bodySmall: base(size: FontSizes.bodySmall, weight: FontWeight.w400, letterSpacing: 0.4),
+    displayLarge: GoogleFonts.inter(
+      fontSize: FontSizes.displayLarge,
+      fontWeight: FontWeight.w400,
+      letterSpacing: -0.25,
+    ),
+    displayMedium: GoogleFonts.inter(
+      fontSize: FontSizes.displayMedium,
+      fontWeight: FontWeight.w400,
+    ),
+    displaySmall: GoogleFonts.inter(
+      fontSize: FontSizes.displaySmall,
+      fontWeight: FontWeight.w400,
+    ),
+    headlineLarge: GoogleFonts.inter(
+      fontSize: FontSizes.headlineLarge,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.5,
+    ),
+    headlineMedium: GoogleFonts.inter(
+      fontSize: FontSizes.headlineMedium,
+      fontWeight: FontWeight.w600,
+    ),
+    headlineSmall: GoogleFonts.inter(
+      fontSize: FontSizes.headlineSmall,
+      fontWeight: FontWeight.w600,
+    ),
+    titleLarge: GoogleFonts.inter(
+      fontSize: FontSizes.titleLarge,
+      fontWeight: FontWeight.w600,
+    ),
+    titleMedium: GoogleFonts.inter(
+      fontSize: FontSizes.titleMedium,
+      fontWeight: FontWeight.w500,
+    ),
+    titleSmall: GoogleFonts.inter(
+      fontSize: FontSizes.titleSmall,
+      fontWeight: FontWeight.w500,
+    ),
+    labelLarge: GoogleFonts.inter(
+      fontSize: FontSizes.labelLarge,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+    ),
+    labelMedium: GoogleFonts.inter(
+      fontSize: FontSizes.labelMedium,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+    ),
+    labelSmall: GoogleFonts.inter(
+      fontSize: FontSizes.labelSmall,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+    ),
+    bodyLarge: GoogleFonts.inter(
+      fontSize: FontSizes.bodyLarge,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.15,
+    ),
+    bodyMedium: GoogleFonts.inter(
+      fontSize: FontSizes.bodyMedium,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.25,
+    ),
+    bodySmall: GoogleFonts.inter(
+      fontSize: FontSizes.bodySmall,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.4,
+    ),
   );
 }

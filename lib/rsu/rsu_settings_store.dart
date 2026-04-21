@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:rsu_results/rsu/web_local_storage.dart';
+import 'package:web/web.dart' as web;
 
 import 'models.dart';
 import 'rsu_config.dart';
@@ -39,14 +38,14 @@ class _SharedPrefsLike implements _PrefsLike {
 }
 
 class _WebLocalStoragePrefsLike implements _PrefsLike {
-  final WebLocalStorage _storage;
+  final web.Storage? _storage;
 
-  _WebLocalStoragePrefsLike() : _storage = WebLocalStorage.instance;
+  _WebLocalStoragePrefsLike() : _storage = web.window.localStorage;
 
   @override
   String? getString(String key) {
     try {
-      return _storage.getItem(key);
+      return _storage?.getItem(key);
     } catch (e) {
       debugPrint('localStorage getString failed for "$key": $e');
       return null;
@@ -63,7 +62,7 @@ class _WebLocalStoragePrefsLike implements _PrefsLike {
   @override
   Future<void> setString(String key, String value) async {
     try {
-      _storage.setItem(key, value);
+      _storage?.setItem(key, value);
     } catch (e) {
       debugPrint('localStorage setString failed for "$key": $e');
     }
@@ -75,7 +74,7 @@ class _WebLocalStoragePrefsLike implements _PrefsLike {
   @override
   Future<void> remove(String key) async {
     try {
-      _storage.removeItem(key);
+      _storage?.removeItem(key);
     } catch (e) {
       debugPrint('localStorage remove failed for "$key": $e');
     }
@@ -134,7 +133,6 @@ class RsuSettingsStore {
   static const _kPkceState = 'rsu.pkce.state';
   static const _kPkceVerifier = 'rsu.pkce.verifier';
   static const _kPageBackgroundArgb = 'rsu.ui.pageBackgroundArgb';
-  static const _kLogoutCode = 'rsu.logoutCode';
 
   Future<_PrefsLike> _prefs({required bool sensitive}) async {
     if (kIsWeb) return _WebLocalStoragePrefsLike();
@@ -197,17 +195,13 @@ class RsuSettingsStore {
     }
   });
 
-  Future<DateTimeRange?> getDateRange() => _safeRead<DateTimeRange?>(
+  Future<DateTimeRange> getDateRange() => _safeRead(
     sensitive: false,
-    fallback: null,
+    fallback: DateTimeRange(start: DateTime.now(), end: DateTime.now()),
     read: (p) {
-      final rawStart = (p.getString(_kStartDate) ?? '').trim();
-      final rawEnd = (p.getString(_kEndDate) ?? '').trim();
-      if (rawStart.isEmpty || rawEnd.isEmpty) return null;
-
-      final start = DateTime.tryParse(rawStart);
-      final end = DateTime.tryParse(rawEnd);
-      if (start == null || end == null) return null;
+      final now = DateTime.now();
+      final start = DateTime.tryParse(p.getString(_kStartDate) ?? '') ?? DateTime(now.year, now.month, now.day);
+      final end = DateTime.tryParse(p.getString(_kEndDate) ?? '') ?? DateTime(now.year, now.month, now.day);
       return DateTimeRange(start: start, end: end);
     },
   );
@@ -217,14 +211,6 @@ class RsuSettingsStore {
     write: (p) async {
       await p.setString(_kStartDate, _yyyyMmDd(range.start));
       await p.setString(_kEndDate, _yyyyMmDd(range.end));
-    },
-  );
-
-  Future<void> clearDateRange() => _safeWrite(
-    sensitive: false,
-    write: (p) async {
-      await p.remove(_kStartDate);
-      await p.remove(_kEndDate);
     },
   );
 
@@ -289,13 +275,6 @@ class RsuSettingsStore {
 
   Future<void> setRaceId(String raceId) => _safeWrite(sensitive: false, write: (p) => p.setString(_kRaceId, raceId));
 
-  Future<void> clearRaceId() => _safeWrite(
-    sensitive: false,
-    write: (p) async {
-      await p.remove(_kRaceId);
-    },
-  );
-
   Future<RsuRaceThemeSettings> getRaceTheme(String raceId) => _safeRead(
     sensitive: false,
     fallback: RsuRaceThemeSettings.defaultsForRace(raceId),
@@ -329,29 +308,6 @@ class RsuSettingsStore {
       }
     },
   );
-
-  Future<String?> getLogoutCode() => _safeRead<String?>(
-    sensitive: true,
-    fallback: null,
-    read: (p) {
-      final v = (p.getString(_kLogoutCode) ?? '').trim();
-      return v.isEmpty ? null : v;
-    },
-  );
-
-  Future<void> setLogoutCode(String value) => _safeWrite(
-    sensitive: true,
-    write: (p) async {
-      final v = value.trim();
-      if (v.isEmpty) {
-        await p.remove(_kLogoutCode);
-      } else {
-        await p.setString(_kLogoutCode, v);
-      }
-    },
-  );
-
-  Future<void> clearLogoutCode() => _safeWrite(sensitive: true, write: (p) => p.remove(_kLogoutCode));
 
   Future<void> saveToken({required String accessToken, required int expiresInSeconds, required String refreshToken}) => _safeWrite(
     sensitive: true,

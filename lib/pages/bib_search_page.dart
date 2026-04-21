@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -135,30 +134,35 @@ class _BibSearchPageState extends State<BibSearchPage> {
     Color? background;
     if (theme != null) background = _colorFromHex(theme.backgroundColorHex);
 
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
-        backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('Search Results'), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
-                child: _LegacyBibSearchCard(
-                  loadingRace: _loadingRace,
-                  error: _error,
-                  race: race,
-                  theme: theme,
-                  queryController: _query,
-                  queryFocus: _queryFocus,
-                  showNumericKeypad: _showNumericKeypad,
-                  onDigit: _appendDigit,
-                  onClear: _clear,
-                  onDelete: _deleteChar,
-                  onSearch: _search,
-                ),
+    return Scaffold(
+      backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Search Results'),
+        leading: IconButton(onPressed: () => context.go(AppRoutes.races), icon: Icon(Icons.arrow_back, color: cs.primary)),
+        actions: [
+          IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
+          IconButton(tooltip: 'Race settings', onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'), icon: Icon(Icons.settings_outlined, color: cs.primary)),
+          const LogoutActionButton(),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
+              child: _LegacyBibSearchCard(
+                loadingRace: _loadingRace,
+                error: _error,
+                race: race,
+                theme: theme,
+                queryController: _query,
+                queryFocus: _queryFocus,
+                showNumericKeypad: _showNumericKeypad,
+                onDigit: _appendDigit,
+                onClear: _clear,
+                onDelete: _deleteChar,
+                onSearch: _search,
               ),
             ),
           ),
@@ -237,8 +241,19 @@ class _LegacyBibSearchCard extends StatelessWidget {
               onDigit: onDigit,
               onClear: onClear,
               onDelete: onDelete,
-              onFind: onSearch,
               onSubmitted: onSearch,
+            ),
+            const SizedBox(height: 14),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionOrange,
+                foregroundColor: AppColors.onActionOrange,
+                minimumSize: const Size.fromHeight(54),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: onSearch,
+              child: Text('Find Results', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppColors.onActionOrange)),
             ),
             const SizedBox(height: 8),
             Text(
@@ -260,7 +275,6 @@ class _UnifiedSearchSection extends StatelessWidget {
   final ValueChanged<String> onDigit;
   final VoidCallback onClear;
   final VoidCallback onDelete;
-  final VoidCallback onFind;
   final VoidCallback onSubmitted;
 
   const _UnifiedSearchSection({
@@ -270,7 +284,6 @@ class _UnifiedSearchSection extends StatelessWidget {
     required this.onDigit,
     required this.onClear,
     required this.onDelete,
-    required this.onFind,
     required this.onSubmitted,
   });
 
@@ -287,48 +300,13 @@ class _UnifiedSearchSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final stackVertically = constraints.maxWidth < 460;
-            final field = _LegacyTextField(
-              controller: controller,
-              focusNode: focusNode,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.search,
-              hintText: hint,
-              inputFormatters: const [_FirstCharNumericDigitsOnlyFormatter()],
-              onSubmitted: (_) => onSubmitted(),
-            );
-
-            final findButton = FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.actionOrange,
-                foregroundColor: AppColors.onActionOrange,
-                minimumSize: stackVertically ? const Size.fromHeight(54) : const Size(160, 54),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                splashFactory: NoSplash.splashFactory,
-              ),
-              onPressed: onFind,
-              icon: Icon(Icons.search, color: AppColors.onActionOrange),
-              label: Text(
-                'Find',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.4, color: AppColors.onActionOrange),
-              ),
-            );
-
-            if (stackVertically) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [field, const SizedBox(height: 10), findButton],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [Expanded(child: field), const SizedBox(width: 12), findButton],
-            );
-          },
+        _LegacyTextField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.search,
+          hintText: hint,
+          onSubmitted: (_) => onSubmitted(),
         ),
         const SizedBox(height: 10),
         AnimatedSwitcher(
@@ -380,25 +358,6 @@ class _UnifiedSearchSection extends StatelessWidget {
   }
 }
 
-class _FirstCharNumericDigitsOnlyFormatter extends TextInputFormatter {
-  const _FirstCharNumericDigitsOnlyFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final text = newValue.text;
-    if (text.isEmpty) return newValue;
-
-    final firstChar = text.characters.first;
-    final startsWithDigit = int.tryParse(firstChar) != null;
-    if (!startsWithDigit) return newValue;
-
-    final digitsOnly = text.replaceAll(RegExp(r'\D'), '');
-    if (digitsOnly == text) return newValue;
-
-    return TextEditingValue(text: digitsOnly, selection: TextSelection.collapsed(offset: digitsOnly.length));
-  }
-}
-
 class _LegacyTextField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -407,7 +366,6 @@ class _LegacyTextField extends StatelessWidget {
   final String hintText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
-  final List<TextInputFormatter>? inputFormatters;
 
   const _LegacyTextField({
     required this.controller,
@@ -417,7 +375,6 @@ class _LegacyTextField extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.onSubmitted,
-    this.inputFormatters,
   });
 
   @override
@@ -429,7 +386,6 @@ class _LegacyTextField extends StatelessWidget {
       focusNode: focusNode,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
-      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hintText,
         filled: true,

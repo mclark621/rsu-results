@@ -19,8 +19,6 @@ class RsuAppState extends ChangeNotifier {
       _timerAccountService = timerAccountService ?? RsuTimerAccountService(),
       _publicConfigService = publicConfigService ?? RsuPublicConfigService();
 
-  Future<void>? _bootstrapFuture;
-
   bool _isBootstrapped = false;
   bool get isBootstrapped => _isBootstrapped;
 
@@ -56,23 +54,11 @@ class RsuAppState extends ChangeNotifier {
   String? _raceId;
   String? get raceId => _raceId;
 
-  String? _logoutCode;
-  String? get logoutCode => _logoutCode;
-
   Color? _pageBackgroundColor;
   Color? get pageBackgroundColor => _pageBackgroundColor;
 
   Future<void> bootstrap() async {
     if (_isBootstrapped) return;
-    final existing = _bootstrapFuture;
-    if (existing != null) return existing;
-
-    final f = _bootstrapImpl();
-    _bootstrapFuture = f;
-    return f;
-  }
-
-  Future<void> _bootstrapImpl() async {
     try {
       _accessToken = await _store.getAccessToken();
       _dateRange = await _store.getDateRange();
@@ -82,7 +68,6 @@ class RsuAppState extends ChangeNotifier {
       _rsuUserId = await _store.getRsuUserId();
       _rsuIdentity = await _store.getRsuIdentityDetails();
       _raceId = await _store.getRaceId();
-      _logoutCode = await _store.getLogoutCode();
       final bgArgb = await _store.getPageBackgroundArgb();
       _pageBackgroundColor = bgArgb == null ? null : Color(bgArgb);
 
@@ -93,7 +78,6 @@ class RsuAppState extends ChangeNotifier {
       debugPrint('Bootstrap failed: $e');
     } finally {
       _isBootstrapped = true;
-      _bootstrapFuture = null;
       notifyListeners();
     }
   }
@@ -186,11 +170,6 @@ class RsuAppState extends ChangeNotifier {
   }
 
   Future<void> prepareForApiCall() async {
-    // Ensure we’ve loaded whatever is already on-device (localStorage/SharedPreferences)
-    // before we decide credentials are “missing”. This matters when the user lands directly
-    // on /login (skipping / bootstrap) then continues into the app.
-    if (!_isBootstrapped) await bootstrap();
-
     // Always hydrate credentials from Firestore (when logged in) right before hitting RSU APIs,
     // so new devices and fresh sessions pull the latest timer creds.
     await refreshAccessToken();
@@ -311,32 +290,17 @@ class RsuAppState extends ChangeNotifier {
     } catch (e) {
       debugPrint('FirebaseAuth.signOut failed (ignored): $e');
     }
-
-    // On logout, clear any user-specific flow state so next login starts fresh.
     await _store.clearToken();
     await _store.clearRsuIdentity();
-    await _store.clearDateRange();
-    await _store.clearRaceId();
-    await _store.clearLogoutCode();
-
     _accessToken = null;
     _rsuUserId = null;
     _rsuIdentity = null;
-    _dateRange = null;
-    _raceId = null;
-    _logoutCode = null;
     notifyListeners();
   }
 
   Future<void> setDateRange(DateTimeRange range) async {
     await _store.setDateRange(range);
     _dateRange = range;
-    notifyListeners();
-  }
-
-  Future<void> clearDateRange() async {
-    await _store.clearDateRange();
-    _dateRange = null;
     notifyListeners();
   }
 
@@ -363,24 +327,6 @@ class RsuAppState extends ChangeNotifier {
   Future<void> setRaceId(String value) async {
     await _store.setRaceId(value);
     _raceId = value;
-    notifyListeners();
-  }
-
-  Future<void> clearRaceId() async {
-    await _store.clearRaceId();
-    _raceId = null;
-    notifyListeners();
-  }
-
-  Future<void> setLogoutCode(String? code) async {
-    final v = (code ?? '').trim();
-    if (v.isEmpty) {
-      await _store.clearLogoutCode();
-      _logoutCode = null;
-    } else {
-      await _store.setLogoutCode(v);
-      _logoutCode = v;
-    }
     notifyListeners();
   }
 

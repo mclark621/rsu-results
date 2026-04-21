@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/rsu_config.dart';
@@ -18,21 +19,13 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
-
-  void _showError(Object error) {
-    debugPrint('Login failed: $error');
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger?.clearSnackBars();
-    messenger?.showSnackBar(
-      SnackBar(
-        content: Text('Sign-in failed: $error'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  String? _error;
 
   Future<void> _startOAuth() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
       final appState = context.read<RsuAppState>();
@@ -75,9 +68,11 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) context.go('${AppRoutes.oauthWaiting}?state=$state');
       await oauth.launchAuthorizationUrl(authUrl);
     } catch (e) {
-      if (mounted) _showError(e);
+      debugPrint('OAuth start failed: $e');
+      setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
   }
 
@@ -86,34 +81,39 @@ class _LoginPageState extends State<LoginPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Runsignup Results', style: textTheme.titleLarge, textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _loading ? null : _startOAuth,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.actionOrange,
-                    foregroundColor: AppColors.onActionOrange,
-                    minimumSize: const Size.fromHeight(54),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    splashFactory: NoSplash.splashFactory,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Runsignup Results', textAlign: TextAlign.center, style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 20),
+                  if (_error != null) ...[
+                    CopyableErrorPanel(message: _error!, title: 'Sign-in error'),
+                    const SizedBox(height: 16),
+                  ],
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.actionOrange,
+                        foregroundColor: AppColors.onActionOrange,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+                        textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      onPressed: _loading ? null : _startOAuth,
+                      icon: const Icon(Icons.login, color: AppColors.onActionOrange, size: 20),
+                      label: Text(_loading ? 'Opening…' : 'Sign in with RunSignup', style: const TextStyle(color: AppColors.onActionOrange)),
+                    ),
                   ),
-                  icon: const Icon(Icons.open_in_browser, color: AppColors.onActionOrange),
-                  label: Text(
-                    _loading ? 'Opening…' : 'Sign in with RunSignup',
-                    style: const TextStyle(color: AppColors.onActionOrange),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

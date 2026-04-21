@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,13 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) {
-        final s = RsuAppState();
-        // Kick off bootstrap immediately so deep links (e.g. /login) still load saved credentials.
-        // Errors are handled internally and won’t crash the app.
-        unawaited(s.bootstrap());
-        return s;
-      },
+      create: (_) => RsuAppState(),
       child: Consumer<RsuAppState>(
         builder: (context, app, _) {
           final bg = app.pageBackgroundColor;
