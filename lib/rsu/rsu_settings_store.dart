@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web/web.dart' as web;
+
+import 'package:rsu_results/rsu/web_local_storage.dart';
 
 import 'models.dart';
 import 'rsu_config.dart';
@@ -38,14 +39,14 @@ class _SharedPrefsLike implements _PrefsLike {
 }
 
 class _WebLocalStoragePrefsLike implements _PrefsLike {
-  final web.Storage? _storage;
+  final WebLocalStorage _storage;
 
-  _WebLocalStoragePrefsLike() : _storage = web.window.localStorage;
+  _WebLocalStoragePrefsLike() : _storage = WebLocalStorage.instance;
 
   @override
   String? getString(String key) {
     try {
-      return _storage?.getItem(key);
+      return _storage.getItem(key);
     } catch (e) {
       debugPrint('localStorage getString failed for "$key": $e');
       return null;
@@ -62,7 +63,7 @@ class _WebLocalStoragePrefsLike implements _PrefsLike {
   @override
   Future<void> setString(String key, String value) async {
     try {
-      _storage?.setItem(key, value);
+      _storage.setItem(key, value);
     } catch (e) {
       debugPrint('localStorage setString failed for "$key": $e');
     }
@@ -74,7 +75,7 @@ class _WebLocalStoragePrefsLike implements _PrefsLike {
   @override
   Future<void> remove(String key) async {
     try {
-      _storage?.removeItem(key);
+      _storage.removeItem(key);
     } catch (e) {
       debugPrint('localStorage remove failed for "$key": $e');
     }

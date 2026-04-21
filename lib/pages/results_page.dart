@@ -236,7 +236,7 @@ class _ResultsPageState extends State<ResultsPage> {
         canPop: false,
         child: Scaffold(
         backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('Results'), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
+        appBar: AppBar(title: const SizedBox.shrink(), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
       body: SafeArea(
         child: _loading
             ? const Center(child: SizedBox(width: 44, height: 44, child: CircularProgressIndicator(strokeWidth: 3)))
