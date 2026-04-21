@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -516,7 +515,7 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       child: Icon(Icons.error_outline, color: cs.onErrorContainer, size: 36),
                     ),
                     const SizedBox(height: 12),
-                    Text('No Results Found', style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, color: cs.onSurface, height: 1.1)),
+                    Text('No Results Found', style: TextStyle(fontSize: 28 * scale, color: cs.onSurface, height: 1.1, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
                     Text('We couldn’t find results for that bib/name for this event. Please verify the search and try again.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.45), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
@@ -615,17 +614,17 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                     text: '${selectedResult.firstName} ${selectedResult.lastName}'.trim(),
                     fill: nameColor,
                     stroke: Colors.white,
-                    style: GoogleFonts.alfaSlabOne(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2),
+                    style: TextStyle(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2, fontWeight: FontWeight.w800),
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
 
-              Text(selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime, style: GoogleFonts.rubikDistressed(fontSize: 86 * scale, height: 1.0, color: dataColor), textAlign: TextAlign.center),
+              Text(selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime, style: TextStyle(fontSize: 86 * scale, height: 1.0, color: dataColor, fontWeight: FontWeight.w800, letterSpacing: 0.6), textAlign: TextAlign.center),
               const SizedBox(height: 16),
 
-              Text('${selectedResult.eventName} FINISHER', style: GoogleFonts.rubikDistressed(fontSize: 28 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+              Text('${selectedResult.eventName} FINISHER', style: TextStyle(fontSize: 28 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700, letterSpacing: 0.4), textAlign: TextAlign.center),
               const SizedBox(height: 22),
 
               ResultsMetricSection(label: 'BIB NUMBER', value: selectedResult.bib.isEmpty ? '-' : selectedResult.bib, labelColor: labelColor, dataColor: dataColor, scale: scale),
@@ -703,9 +702,9 @@ class ResultsMetricSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, height: 1.1, color: labelColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+        Text(label, style: TextStyle(fontSize: 28 * scale, height: 1.1, color: labelColor, fontWeight: FontWeight.w800, letterSpacing: 0.2), textAlign: TextAlign.center),
         const SizedBox(height: 6),
-        Text(value, style: GoogleFonts.rubikDistressed(fontSize: 22 * scale, height: 1.1, color: dataColor), textAlign: TextAlign.center),
+        Text(value, style: TextStyle(fontSize: 22 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700, letterSpacing: 0.2), textAlign: TextAlign.center),
       ],
     );
   }
