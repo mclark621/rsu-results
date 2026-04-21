@@ -53,6 +53,10 @@ class _BootstrapPageState extends State<BootstrapPage> {
       }
 
       if (!mounted) return;
+
+      // Requirement: on login/bootstrap, always start at date selection.
+      // Also clear any previously-selected race so the router lock cannot send users directly to search.
+      await state.clearRaceId();
       context.go(AppRoutes.dates);
     });
   }

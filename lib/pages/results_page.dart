@@ -231,28 +231,11 @@ class _ResultsPageState extends State<ResultsPage> {
     return Listener(
       onPointerDown: (_) => _armAutoBackTimer(),
       onPointerMove: (_) => _armAutoBackTimer(),
-      child: Scaffold(
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
         backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-        title: const Text('Results'),
-        leading: IconButton(
-          onPressed: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
-          icon: Icon(Icons.arrow_back, color: cs.primary),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Global settings',
-            onPressed: () => context.push(AppRoutes.settingsGlobal),
-            icon: Icon(Icons.manage_accounts_outlined, color: cs.primary),
-          ),
-          IconButton(
-            tooltip: 'Race settings',
-            onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'),
-            icon: Icon(Icons.settings_outlined, color: cs.primary),
-          ),
-          const LogoutActionButton(),
-        ],
-      ),
+        appBar: AppBar(title: const Text('Results'), automaticallyImplyLeading: false, actions: const [LogoutActionButton()]),
       body: SafeArea(
         child: _loading
             ? const Center(child: LinearProgressIndicator())
@@ -270,12 +253,13 @@ class _ResultsPageState extends State<ResultsPage> {
                             child: CandidatePickerPanel(
                               candidates: _candidates,
                               onPick: (bib) => context.go('${AppRoutes.results}?raceId=${widget.raceId}&searchType=bib&bib=$bib'),
-                              onCancel: () => context.pop(),
+                              onCancel: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
                             ),
                           ),
                         ),
                       )
                     : ResultsLegacyLikeView(race: _race, theme: raceTheme, results: _results, onTapName: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}')),
+        ),
       ),
     ),
     );

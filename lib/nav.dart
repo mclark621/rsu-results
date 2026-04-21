@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:rsu_results/pages/bib_search_page.dart';
 import 'package:rsu_results/pages/bootstrap_page.dart';
@@ -12,6 +13,7 @@ import 'package:rsu_results/pages/oauth_waiting_page.dart';
 import 'package:rsu_results/pages/race_picker_page.dart';
 import 'package:rsu_results/pages/race_settings_page.dart';
 import 'package:rsu_results/pages/results_page.dart';
+import 'package:rsu_results/rsu/app_state.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -35,6 +37,37 @@ class AppRouter {
       if (effectiveQp.isNotEmpty && state.uri.path != AppRoutes.oauthCallback) {
         final q = Uri(queryParameters: effectiveQp).query;
         return q.isEmpty ? AppRoutes.oauthCallback : '${AppRoutes.oauthCallback}?$q';
+      }
+
+      // Lock navigation once the user has progressed into the race search flow.
+      // Requirement: after reaching the results search page, users should not be able to go “back”
+      // to date/race selection nor access settings.
+      try {
+        final app = context.read<RsuAppState>();
+        final hasToken = (app.accessToken ?? '').trim().isNotEmpty;
+        final raceId = (app.raceId ?? '').trim();
+        final locked = hasToken && raceId.isNotEmpty;
+
+        if (locked) {
+          final path = state.uri.path;
+          final allowed = path == AppRoutes.search || path == AppRoutes.results || path == AppRoutes.oauthCallback || path == AppRoutes.oauthWaiting;
+
+          if (!allowed || path == AppRoutes.settingsGlobal || path == AppRoutes.settingsRace || path == AppRoutes.dates || path == AppRoutes.races || path == AppRoutes.login || path == AppRoutes.bootstrap) {
+            // Always keep them in the search flow.
+            return '${AppRoutes.search}?raceId=$raceId';
+          }
+
+          // Sanitize missing raceId in query params so deep links stay consistent.
+          if ((path == AppRoutes.search || path == AppRoutes.results) && (state.uri.queryParameters['raceId'] ?? '').trim().isEmpty) {
+            final qp = Map<String, String>.from(state.uri.queryParameters);
+            qp['raceId'] = raceId;
+            final q = Uri(queryParameters: qp).query;
+            return '${path}?$q';
+          }
+        }
+      } catch (e) {
+        // If the provider isn’t available yet, ignore and continue.
+        debugPrint('Router redirect appState read failed (ignored): $e');
       }
 
       return null;

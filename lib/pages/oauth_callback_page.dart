@@ -92,6 +92,10 @@ class _OAuthCallbackPageState extends State<OAuthCallbackPage> {
       if (!mounted) return;
       // If Firebase sign-in failed, keep the user on this screen so they can copy the error.
       if (_firebaseAuthError != null && _firebaseAuthError!.trim().isNotEmpty) return;
+
+      // Requirement: after login, always start at date selection.
+      // Clear any previously selected race so router locks cannot jump directly into search.
+      await appState.clearRaceId();
       context.go(AppRoutes.dates);
     } catch (e) {
       debugPrint('OAuth callback failed: $e');
