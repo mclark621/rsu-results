@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:rsu_results/pages/bib_search_page.dart';
 import 'package:rsu_results/pages/bootstrap_page.dart';
@@ -12,11 +13,29 @@ import 'package:rsu_results/pages/oauth_waiting_page.dart';
 import 'package:rsu_results/pages/race_picker_page.dart';
 import 'package:rsu_results/pages/race_settings_page.dart';
 import 'package:rsu_results/pages/results_page.dart';
+import 'package:rsu_results/rsu/app_state.dart';
 
 class AppRouter {
-  static final GoRouter router = GoRouter(
+  /// Creates a GoRouter with the given [appState] as refreshListenable.
+  /// This ensures redirects re-evaluate when kiosk mode changes.
+  static GoRouter createRouter(RsuAppState appState) => GoRouter(
     initialLocation: AppRoutes.bootstrap,
+    refreshListenable: appState,
     redirect: (context, state) {
+      // KIOSK MODE: Block browser back button from going to pre-kiosk pages
+      final appState = context.read<RsuAppState>();
+      final isKioskMode = appState.logoutCode != null && appState.logoutCode!.isNotEmpty;
+      final kioskRaceId = appState.raceId;
+      
+      if (isKioskMode && kioskRaceId != null && kioskRaceId.isNotEmpty) {
+        final path = state.uri.path;
+        // Only allow /search and /results in kiosk mode
+        final isAllowedPath = path == AppRoutes.search || path == AppRoutes.results;
+        if (!isAllowedPath) {
+          debugPrint('KIOSK: Blocking navigation to $path, redirecting to search');
+          return '${AppRoutes.search}?raceId=$kioskRaceId';
+        }
+      }
       // Web note: Dreamflow uses hash-based routing (e.g. `#/login`). Some OAuth providers (including
       // RunSignup) redirect to the site root with query params BEFORE the hash:
       //   https://domain/?code=...&state=...#/login

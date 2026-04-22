@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:web/web.dart' as web;
 
 import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -148,14 +149,27 @@ class _RacePickerPageState extends State<RacePickerPage> {
     await appState.setTimeoutSeconds(_timeout);
     await appState.setLogoutCode(logoutCode);
     if (!mounted) return;
+    
+    // Clear browser history on web to prevent back button from escaping kiosk mode
+    if (kIsWeb) {
+      try {
+        final targetUrl = '#${AppRoutes.search}?raceId=$raceId';
+        // Replace all history entries with the search page
+        web.window.history.replaceState(null, '', targetUrl);
+        debugPrint('KIOSK: Cleared browser history, replaced with $targetUrl');
+      } catch (e) {
+        debugPrint('KIOSK: Failed to clear browser history: $e');
+      }
+    }
+    
     context.go('${AppRoutes.search}?raceId=$raceId');
   }
 
   Future<String?> _promptForLogoutCode() async {
     final cs = Theme.of(context).colorScheme;
     final codeController = TextEditingController();
-    final confirmController = TextEditingController();
     String? errorText;
+    bool obscureCode = true;
 
     return showModalBottomSheet<String>(
       context: context,
@@ -179,24 +193,17 @@ class _RacePickerPageState extends State<RacePickerPage> {
               TextField(
                 controller: codeController,
                 keyboardType: TextInputType.number,
+                obscureText: obscureCode,
                 decoration: InputDecoration(
                   labelText: 'Logout Code (4+ digits)',
                   filled: true,
                   fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onChanged: (_) => setSheetState(() => errorText = null),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: confirmController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Code',
-                  filled: true,
-                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   errorText: errorText,
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+                  ),
                 ),
                 onChanged: (_) => setSheetState(() => errorText = null),
               ),
@@ -210,13 +217,8 @@ class _RacePickerPageState extends State<RacePickerPage> {
                 ),
                 onPressed: () {
                   final code = codeController.text.trim();
-                  final confirm = confirmController.text.trim();
                   if (code.length < 4) {
                     setSheetState(() => errorText = 'Code must be at least 4 characters');
-                    return;
-                  }
-                  if (code != confirm) {
-                    setSheetState(() => errorText = 'Codes do not match');
                     return;
                   }
                   Navigator.of(ctx).pop(code);
