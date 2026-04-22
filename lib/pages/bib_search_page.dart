@@ -138,12 +138,8 @@ class _BibSearchPageState extends State<BibSearchPage> {
       backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Bay City Timing & Events'),
-        leading: IconButton(onPressed: () => context.go(AppRoutes.races), icon: Icon(Icons.arrow_back, color: cs.primary)),
-        actions: [
-          IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
-          IconButton(tooltip: 'Race settings', onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'), icon: Icon(Icons.settings_outlined, color: cs.primary)),
-          const LogoutActionButton(),
-        ],
+        automaticallyImplyLeading: false,
+        actions: const [LogoutActionButton()],
       ),
       body: SafeArea(
         child: Center(

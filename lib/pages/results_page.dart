@@ -239,19 +239,7 @@ class _ResultsPageState extends State<ResultsPage> {
           onPressed: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
           icon: Icon(Icons.arrow_back, color: cs.primary),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Global settings',
-            onPressed: () => context.push(AppRoutes.settingsGlobal),
-            icon: Icon(Icons.manage_accounts_outlined, color: cs.primary),
-          ),
-          IconButton(
-            tooltip: 'Race settings',
-            onPressed: () => context.push('${AppRoutes.settingsRace}?raceId=${widget.raceId}'),
-            icon: Icon(Icons.settings_outlined, color: cs.primary),
-          ),
-          const LogoutActionButton(),
-        ],
+        actions: const [LogoutActionButton()],
       ),
       body: SafeArea(
         child: _loading

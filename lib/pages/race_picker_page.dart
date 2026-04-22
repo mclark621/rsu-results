@@ -138,11 +138,106 @@ class _RacePickerPageState extends State<RacePickerPage> {
   Future<void> _continue() async {
     final raceId = _selectedRaceId;
     if (raceId == null || raceId.isEmpty) return;
+
+    // Prompt for logout code before locking into kiosk mode
+    final logoutCode = await _promptForLogoutCode();
+    if (logoutCode == null) return; // User cancelled
+
     final appState = context.read<RsuAppState>();
     await appState.setRaceId(raceId);
     await appState.setTimeoutSeconds(_timeout);
+    await appState.setLogoutCode(logoutCode);
     if (!mounted) return;
     context.go('${AppRoutes.search}?raceId=$raceId');
+  }
+
+  Future<String?> _promptForLogoutCode() async {
+    final cs = Theme.of(context).colorScheme;
+    final codeController = TextEditingController();
+    final confirmController = TextEditingController();
+    String? errorText;
+
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: cs.surface,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Set Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(
+                'This code will be required to log out. Keep it safe — without it, you cannot exit kiosk mode.',
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Logout Code (4+ digits)',
+                  filled: true,
+                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onChanged: (_) => setSheetState(() => errorText = null),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Code',
+                  filled: true,
+                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  errorText: errorText,
+                ),
+                onChanged: (_) => setSheetState(() => errorText = null),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.actionOrange,
+                  foregroundColor: AppColors.onActionOrange,
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  final code = codeController.text.trim();
+                  final confirm = confirmController.text.trim();
+                  if (code.length < 4) {
+                    setSheetState(() => errorText = 'Code must be at least 4 characters');
+                    return;
+                  }
+                  if (code != confirm) {
+                    setSheetState(() => errorText = 'Codes do not match');
+                    return;
+                  }
+                  Navigator.of(ctx).pop(code);
+                },
+                child: const Text('Set Code & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                ),
+                onPressed: () => Navigator.of(ctx).pop(null),
+                child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   InputDecoration _dropdownDecoration(BuildContext context, {required String label}) {

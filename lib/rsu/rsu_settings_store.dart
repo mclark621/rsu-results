@@ -133,6 +133,7 @@ class RsuSettingsStore {
   static const _kPkceState = 'rsu.pkce.state';
   static const _kPkceVerifier = 'rsu.pkce.verifier';
   static const _kPageBackgroundArgb = 'rsu.ui.pageBackgroundArgb';
+  static const _kLogoutCode = 'rsu.logoutCode';
 
   Future<_PrefsLike> _prefs({required bool sensitive}) async {
     if (kIsWeb) return _WebLocalStoragePrefsLike();
@@ -274,6 +275,29 @@ class RsuSettingsStore {
   );
 
   Future<void> setRaceId(String raceId) => _safeWrite(sensitive: false, write: (p) => p.setString(_kRaceId, raceId));
+
+  Future<String?> getLogoutCode() => _safeRead<String?>(
+    sensitive: false,
+    fallback: null,
+    read: (p) {
+      final v = p.getString(_kLogoutCode);
+      return (v == null || v.trim().isEmpty) ? null : v.trim();
+    },
+  );
+
+  Future<void> setLogoutCode(String? code) => _safeWrite(
+    sensitive: false,
+    write: (p) async {
+      final v = (code ?? '').trim();
+      if (v.isEmpty) {
+        await p.remove(_kLogoutCode);
+      } else {
+        await p.setString(_kLogoutCode, v);
+      }
+    },
+  );
+
+  Future<void> clearLogoutCode() => _safeWrite(sensitive: false, write: (p) => p.remove(_kLogoutCode));
 
   Future<RsuRaceThemeSettings> getRaceTheme(String raceId) => _safeRead(
     sensitive: false,

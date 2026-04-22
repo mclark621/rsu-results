@@ -54,6 +54,9 @@ class RsuAppState extends ChangeNotifier {
   String? _raceId;
   String? get raceId => _raceId;
 
+  String? _logoutCode;
+  String? get logoutCode => _logoutCode;
+
   Color? _pageBackgroundColor;
   Color? get pageBackgroundColor => _pageBackgroundColor;
 
@@ -68,6 +71,7 @@ class RsuAppState extends ChangeNotifier {
       _rsuUserId = await _store.getRsuUserId();
       _rsuIdentity = await _store.getRsuIdentityDetails();
       _raceId = await _store.getRaceId();
+      _logoutCode = await _store.getLogoutCode();
       final bgArgb = await _store.getPageBackgroundArgb();
       _pageBackgroundColor = bgArgb == null ? null : Color(bgArgb);
 
@@ -355,6 +359,18 @@ class RsuAppState extends ChangeNotifier {
   Future<void> setRaceId(String value) async {
     await _store.setRaceId(value);
     _raceId = value;
+    notifyListeners();
+  }
+
+  Future<void> setLogoutCode(String? code) async {
+    await _store.setLogoutCode(code);
+    _logoutCode = (code ?? '').trim().isEmpty ? null : code!.trim();
+    notifyListeners();
+  }
+
+  Future<void> clearLogoutCode() async {
+    await _store.clearLogoutCode();
+    _logoutCode = null;
     notifyListeners();
   }
 
