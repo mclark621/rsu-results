@@ -225,13 +225,17 @@ class _ResultsPageState extends State<ResultsPage> {
   Widget build(BuildContext context) {
     final raceTheme = _theme;
     final cs = Theme.of(context).colorScheme;
+    final appState = context.watch<RsuAppState>();
+    final isKioskMode = appState.logoutCode != null && appState.logoutCode!.isNotEmpty;
 
     final background = raceTheme == null ? null : _colorFromHex(raceTheme.backgroundColorHex);
 
-    return Listener(
-      onPointerDown: (_) => _armAutoBackTimer(),
-      onPointerMove: (_) => _armAutoBackTimer(),
-      child: Scaffold(
+    return PopScope(
+      canPop: !isKioskMode,
+      child: Listener(
+        onPointerDown: (_) => _armAutoBackTimer(),
+        onPointerMove: (_) => _armAutoBackTimer(),
+        child: Scaffold(
         backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
         title: const Text('Bay City Timing & Events'),
@@ -265,6 +269,7 @@ class _ResultsPageState extends State<ResultsPage> {
                       )
                     : ResultsLegacyLikeView(race: _race, theme: raceTheme, results: _results, onTapName: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}')),
       ),
+    ),
     ),
     );
   }

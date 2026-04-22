@@ -130,11 +130,15 @@ class _BibSearchPageState extends State<BibSearchPage> {
     final race = _race;
     final theme = _theme;
     final cs = Theme.of(context).colorScheme;
+    final appState = context.watch<RsuAppState>();
+    final isKioskMode = appState.logoutCode != null && appState.logoutCode!.isNotEmpty;
 
     Color? background;
     if (theme != null) background = _colorFromHex(theme.backgroundColorHex);
 
-    return Scaffold(
+    return PopScope(
+      canPop: !isKioskMode,
+      child: Scaffold(
       backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Bay City Timing & Events'),
@@ -164,6 +168,7 @@ class _BibSearchPageState extends State<BibSearchPage> {
           ),
         ),
       ),
+    ),
     );
   }
 

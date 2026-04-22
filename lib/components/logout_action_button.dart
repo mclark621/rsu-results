@@ -85,6 +85,7 @@ class LogoutActionButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final codeController = TextEditingController();
     String? errorText;
+    bool obscureCode = true;
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -108,7 +109,7 @@ class LogoutActionButton extends StatelessWidget {
               TextField(
                 controller: codeController,
                 keyboardType: TextInputType.number,
-                obscureText: true,
+                obscureText: obscureCode,
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: 'Logout Code',
@@ -116,6 +117,10 @@ class LogoutActionButton extends StatelessWidget {
                   fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   errorText: errorText,
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+                  ),
                 ),
                 onChanged: (_) => setSheetState(() => errorText = null),
                 onSubmitted: (_) {
