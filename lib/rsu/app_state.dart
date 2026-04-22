@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'models.dart';
+import 'rsu_debug_log.dart';
 import 'rsu_firebase_auth_service.dart';
+import 'rsu_oauth_service.dart';
 import 'rsu_public_config_service.dart';
 import 'rsu_settings_store.dart';
 import 'timer_account.dart';
@@ -64,6 +65,9 @@ class RsuAppState extends ChangeNotifier {
     if (_isBootstrapped) return;
     try {
       _accessToken = await _store.getAccessToken();
+      if (_accessToken == null) {
+        await refreshAccessToken();
+      }
       _dateRange = await _store.getDateRange();
       _timeoutSeconds = await _store.getTimeoutSeconds();
       _timerApiKey = await _store.getTimerApiKey();
@@ -79,7 +83,7 @@ class RsuAppState extends ChangeNotifier {
 
       await _hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
     } catch (e) {
-      debugPrint('Bootstrap failed: $e');
+      rsuDebugLog('Bootstrap failed: $e');
     } finally {
       _isBootstrapped = true;
       notifyListeners();
@@ -98,7 +102,7 @@ class RsuAppState extends ChangeNotifier {
     } catch (e) {
       _publicConfigLoadError = e.toString();
       _publicConfigLoaded = true;
-      debugPrint('Failed to load public_config/rsu: $e');
+      rsuDebugLog('Failed to load public_config/rsu: $e');
     }
   }
 
@@ -122,55 +126,55 @@ class RsuAppState extends ChangeNotifier {
         await setRsuIdentity(rsuUserId: mintedUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
       }
     } catch (e) {
-      debugPrint('Silent Firebase sign-in failed (ignored): $e');
+      rsuDebugLog('Silent Firebase sign-in failed (ignored): $e');
     }
   }
 
   Future<void> _hydrateTimerCredentialsFromFirestore({required bool overwriteLocal}) async {
-    debugPrint('HYDRATE: Starting. overwriteLocal=$overwriteLocal');
+    rsuDebugLog('HYDRATE: Starting. overwriteLocal=$overwriteLocal');
     
     await _ensureFirebaseSessionIfPossible();
     final firebaseUser = FirebaseAuth.instance.currentUser;
-    debugPrint('HYDRATE: Firebase user = ${firebaseUser?.uid ?? "NULL"}');
+    rsuDebugLog('HYDRATE: Firebase user = ${firebaseUser?.uid ?? "NULL"}');
 
     final rsuId = (_rsuUserId ?? '').trim();
-    debugPrint('HYDRATE: rsuUserId = ${rsuId.isEmpty ? "EMPTY" : rsuId}');
+    rsuDebugLog('HYDRATE: rsuUserId = ${rsuId.isEmpty ? "EMPTY" : rsuId}');
 
     // Prefer canonical lookup by Firebase uid.
     RsuTimerAccount? acct;
     if (firebaseUser != null) {
-      debugPrint('HYDRATE: Looking up by Firebase UID: ${firebaseUser.uid}');
+      rsuDebugLog('HYDRATE: Looking up by Firebase UID: ${firebaseUser.uid}');
       acct = await _timerAccountService.getAccountByFirebaseUid(firebaseUser.uid);
-      debugPrint('HYDRATE: Lookup by Firebase UID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
+      rsuDebugLog('HYDRATE: Lookup by Firebase UID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
     }
 
     // Backwards compatibility: older builds keyed the document by rsuUserId.
     if (acct == null && rsuId.isNotEmpty) {
-      debugPrint('HYDRATE: Looking up by rsuUserId doc ID: $rsuId');
+      rsuDebugLog('HYDRATE: Looking up by rsuUserId doc ID: $rsuId');
       acct = await _timerAccountService.getAccount(rsuId);
-      debugPrint('HYDRATE: Lookup by rsuUserId doc ID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
+      rsuDebugLog('HYDRATE: Lookup by rsuUserId doc ID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
     }
 
     // Fallback: query by rsuUserId FIELD (handles auto-generated doc IDs or different naming)
     if (acct == null && rsuId.isNotEmpty) {
-      debugPrint('HYDRATE: Looking up by rsuUserId FIELD query: $rsuId');
-      acct = await _timerAccountService.getAccountByRsuUserIdField(rsuId);
-      debugPrint('HYDRATE: Lookup by rsuUserId FIELD result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
+      rsuDebugLog('HYDRATE: Looking up by rsuUserId FIELD query: $rsuId');
+      acct = await _timerAccountService.getAccountByRsuUserIdField(rsuId, ownerFirebaseUid: firebaseUser?.uid);
+      rsuDebugLog('HYDRATE: Lookup by rsuUserId FIELD result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
     }
 
     if (acct == null) {
-      debugPrint('HYDRATE: No account found in Firestore after ALL lookups - credentials cannot be hydrated!');
-      debugPrint('HYDRATE: Tried paths: rsu_timer_accounts/${firebaseUser?.uid}, rsu_timer_accounts/$rsuId, and query by rsuUserId field');
+      rsuDebugLog('HYDRATE: No account found in Firestore after ALL lookups - credentials cannot be hydrated!');
+      rsuDebugLog('HYDRATE: Tried paths: rsu_timer_accounts/${firebaseUser?.uid}, rsu_timer_accounts/$rsuId, and query by rsuUserId field');
       return;
     }
 
     try {
       final key = acct.timerApiKey.trim();
       final secret = acct.timerApiSecret;
-      debugPrint('HYDRATE: Account found. key=${key.isEmpty ? "EMPTY" : "SET(${key.length} chars)"} secret=${secret.trim().isEmpty ? "EMPTY" : "SET(${secret.length} chars)"}');
+      rsuDebugLog('HYDRATE: Account found. key=${key.isEmpty ? "EMPTY" : "SET(${key.length} chars)"} secret=${secret.trim().isEmpty ? "EMPTY" : "SET(${secret.length} chars)"}');
       
       if (key.isEmpty || secret.trim().isEmpty) {
-        debugPrint('HYDRATE: Account exists but key/secret are empty - skipping');
+        rsuDebugLog('HYDRATE: Account exists but key/secret are empty - skipping');
         return;
       }
 
@@ -179,18 +183,18 @@ class RsuAppState extends ChangeNotifier {
       final hasLocalBoth = hasLocalKey && hasLocalSecret;
 
       if (!overwriteLocal && hasLocalBoth) {
-        debugPrint('HYDRATE: Local credentials already present and overwriteLocal=false - skipping');
+        rsuDebugLog('HYDRATE: Local credentials already present and overwriteLocal=false - skipping');
         return;
       }
 
-      debugPrint('HYDRATE: Storing credentials to local storage...');
+      rsuDebugLog('HYDRATE: Storing credentials to local storage...');
       await _store.setTimerApiKey(key);
       await _store.setTimerApiSecret(secret);
       _timerApiKey = key;
       _timerApiSecret = secret;
-      debugPrint('HYDRATE: SUCCESS - credentials stored locally');
+      rsuDebugLog('HYDRATE: SUCCESS - credentials stored locally');
     } catch (e) {
-      debugPrint('HYDRATE: FAILED to store credentials: $e');
+      rsuDebugLog('HYDRATE: FAILED to store credentials: $e');
     }
   }
 
@@ -210,13 +214,25 @@ class RsuAppState extends ChangeNotifier {
 
   Future<void> refreshAccessToken() async {
     try {
-      final fresh = await _store.getAccessToken();
-      if (fresh != _accessToken) {
-        _accessToken = fresh;
-        notifyListeners();
+      var fresh = await _store.getAccessToken();
+      if (fresh != null) {
+        if (fresh != _accessToken) {
+          _accessToken = fresh;
+          notifyListeners();
+        }
+        return;
       }
+
+      final rt = await _store.getRefreshToken();
+      if (rt == null || rt.trim().isEmpty) return;
+
+      final clientId = await getClientId();
+      final oauth = RsuOAuthService();
+      final token = await oauth.refreshAccessTokenViaFirebase(clientId: clientId, refreshToken: rt.trim());
+      final nextRefresh = token.refreshToken.trim().isNotEmpty ? token.refreshToken.trim() : rt.trim();
+      await saveToken(accessToken: token.accessToken, expiresInSeconds: token.expiresIn, refreshToken: nextRefresh);
     } catch (e) {
-      debugPrint('refreshAccessToken failed: $e');
+      rsuDebugLog('refreshAccessToken failed: $e');
     }
   }
 
@@ -230,7 +246,7 @@ class RsuAppState extends ChangeNotifier {
       _timerApiSecret = nextTimerSecret;
       if (changed) notifyListeners();
     } catch (e) {
-      debugPrint('refreshCredentialsFromStore failed (ignored): $e');
+      rsuDebugLog('refreshCredentialsFromStore failed (ignored): $e');
     }
   }
 
@@ -290,7 +306,7 @@ class RsuAppState extends ChangeNotifier {
       );
     }
 
-    debugPrint('Upserting Timer API credentials to Firestore: ${RsuTimerAccountService.collectionPath}/${firebaseUser.uid} (rsuUserId=$rsuId)');
+    rsuDebugLog('Upserting Timer API credentials to Firestore: ${RsuTimerAccountService.collectionPath}/${firebaseUser.uid} (rsuUserId=$rsuId)');
     try {
       await _timerAccountService.upsertAccount(
         firebaseUid: firebaseUser.uid,
@@ -301,9 +317,9 @@ class RsuAppState extends ChangeNotifier {
         timerApiKey: key,
         timerApiSecret: secret,
       );
-      debugPrint('Upserted Timer API credentials to Firestore OK.');
+      rsuDebugLog('Upserted Timer API credentials to Firestore OK.');
     } catch (e, st) {
-      debugPrint('Firestore timer account upsert failed: $e\n$st');
+      rsuDebugLog('Firestore timer account upsert failed: $e\n$st');
       if (throwOnFailure) rethrow;
     }
   }
@@ -320,7 +336,7 @@ class RsuAppState extends ChangeNotifier {
     try {
       await FirebaseAuth.instance.signOut();
     } catch (e) {
-      debugPrint('FirebaseAuth.signOut failed (ignored): $e');
+      rsuDebugLog('FirebaseAuth.signOut failed (ignored): $e');
     }
     await _store.clearToken();
     await _store.clearRsuIdentity();
@@ -375,7 +391,7 @@ class RsuAppState extends ChangeNotifier {
   }
 
   Future<void> setPageBackgroundColor(Color? color) async {
-    await _store.setPageBackgroundArgb(color?.value);
+    await _store.setPageBackgroundArgb(color?.toARGB32());
     _pageBackgroundColor = color;
     notifyListeners();
   }

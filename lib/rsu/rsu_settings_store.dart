@@ -355,6 +355,15 @@ class RsuSettingsStore {
     },
   );
 
+  Future<String?> getRefreshToken() => _safeRead<String?>(
+    sensitive: true,
+    fallback: null,
+    read: (p) {
+      final v = p.getString(_kRefreshToken);
+      return (v == null || v.trim().isEmpty) ? null : v.trim();
+    },
+  );
+
   Future<String?> getRsuUserId() => _safeRead<String?>(
     sensitive: false,
     fallback: null,

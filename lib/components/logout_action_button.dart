@@ -20,6 +20,7 @@ class LogoutActionButton extends StatelessWidget {
     if (requiredCode != null && requiredCode.isNotEmpty) {
       final codeValid = await _promptForLogoutCode(context, requiredCode);
       if (!codeValid) return;
+      if (!context.mounted) return;
     }
 
     final confirmed = await showModalBottomSheet<bool>(

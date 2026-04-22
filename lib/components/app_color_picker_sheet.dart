@@ -98,7 +98,7 @@ class _AppColorPickerSheetState extends State<AppColorPickerSheet> {
                   for (final c in _swatches)
                     _SwatchDot(
                       color: c,
-                      selected: _selected?.value == c.value,
+                      selected: _selected?.toARGB32() == c.toARGB32(),
                       onTap: () => setState(() {
                         _selected = c;
                         _hexCtrl.text = _toHex(c, allowAlpha: widget.allowAlpha);
@@ -169,7 +169,7 @@ class _AppColorPickerSheetState extends State<AppColorPickerSheet> {
   }
 
   static String _toHex(Color c, {required bool allowAlpha}) {
-    final v = c.value;
+    final v = c.toARGB32();
     final a = (v >> 24) & 0xFF;
     final r = (v >> 16) & 0xFF;
     final g = (v >> 8) & 0xFF;
@@ -277,14 +277,14 @@ class _RgbSlidersState extends State<_RgbSliders> {
   @override
   void didUpdateWidget(covariant _RgbSliders oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.color.value != widget.color.value) _syncFromColor(widget.color);
+    if (oldWidget.color.toARGB32() != widget.color.toARGB32()) _syncFromColor(widget.color);
   }
 
   void _syncFromColor(Color c) {
-    _r = c.red.toDouble();
-    _g = c.green.toDouble();
-    _b = c.blue.toDouble();
-    _a = c.alpha.toDouble();
+    _r = (c.r * 255.0).roundToDouble().clamp(0, 255);
+    _g = (c.g * 255.0).roundToDouble().clamp(0, 255);
+    _b = (c.b * 255.0).roundToDouble().clamp(0, 255);
+    _a = (c.a * 255.0).roundToDouble().clamp(0, 255);
   }
 
   Color _build() => Color.fromARGB(_a.round(), _r.round(), _g.round(), _b.round());

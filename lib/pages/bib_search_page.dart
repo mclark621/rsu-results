@@ -129,7 +129,6 @@ class _BibSearchPageState extends State<BibSearchPage> {
   Widget build(BuildContext context) {
     final race = _race;
     final theme = _theme;
-    final cs = Theme.of(context).colorScheme;
     final appState = context.watch<RsuAppState>();
     final isKioskMode = appState.logoutCode != null && appState.logoutCode!.isNotEmpty;
 
@@ -375,7 +374,6 @@ class _LegacyTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final TextInputAction? textInputAction;
   final String hintText;
-  final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
 
   const _LegacyTextField({
@@ -384,7 +382,6 @@ class _LegacyTextField extends StatelessWidget {
     required this.keyboardType,
     required this.hintText,
     this.textInputAction,
-    this.onChanged,
     this.onSubmitted,
   });
 
@@ -406,7 +403,6 @@ class _LegacyTextField extends StatelessWidget {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.4), width: 2)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: cs.primary, width: 2)),
       ),
-      onChanged: onChanged,
       onSubmitted: onSubmitted,
     );
   }
@@ -430,7 +426,6 @@ class _RaceLogos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final widgets = <Widget>[];
     final normalizedLogo = _normalizeRemoteUrl(logoUrl);
     if (normalizedLogo.isNotEmpty) {

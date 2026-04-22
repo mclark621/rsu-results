@@ -45,6 +45,12 @@ export const rsuFirebaseLogin = onRequest({
     return;
   }
 
+  const contentType = (req.get("content-type") ?? "").toLowerCase();
+  if (!contentType.includes("application/json")) {
+    res.status(415).json({ error: "unsupported_media_type", message: "Expected Content-Type: application/json" });
+    return;
+  }
+
   try {
     if (!admin.apps.length) admin.initializeApp();
 

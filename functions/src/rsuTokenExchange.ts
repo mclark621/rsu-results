@@ -31,8 +31,69 @@ export const rsuTokenExchange = onRequest({
     return;
   }
 
+  const contentType = (req.get("content-type") ?? "").toLowerCase();
+  if (!contentType.includes("application/json")) {
+    res.status(415).json({ error: "unsupported_media_type", message: "Expected Content-Type: application/json" });
+    return;
+  }
+
   try {
+    const secret = rsuOauthClientSecret.value().trim();
+    if (!secret) {
+      res.status(500).json({ error: "missing_server_secret", message: "RSU_OAUTH_CLIENT_SECRET is not configured." });
+      return;
+    }
+
     const clientId = readBodyStringField(req.body, "client_id");
+    const grantTypeRaw = readBodyStringField(req.body, "grant_type");
+    const grantType = grantTypeRaw || (readBodyStringField(req.body, "code") ? "authorization_code" : "");
+
+    res.setHeader("Cache-Control", "no-store");
+
+    if (grantType === "refresh_token") {
+      const refreshToken = readBodyStringField(req.body, "refresh_token");
+      if (!clientId || !refreshToken) {
+        res.status(400).json({
+          error: "missing_params",
+          grant_type: "refresh_token",
+          required: ["client_id", "refresh_token"],
+        });
+        return;
+      }
+
+      const body = new URLSearchParams();
+      body.set("grant_type", "refresh_token");
+      body.set("client_id", clientId);
+      body.set("client_secret", secret);
+      body.set("refresh_token", refreshToken);
+
+      const upstream = await fetch("https://api.runsignup.com/rest/v2/auth/refresh-token.json", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
+        },
+        body,
+      });
+
+      const text = await upstream.text();
+      if (upstream.status !== 200) {
+        res.status(400).json({
+          error: "token_refresh_failed",
+          status: upstream.status,
+          body: text.slice(0, 2000),
+        });
+        return;
+      }
+      res.status(200).send(text);
+      return;
+    }
+
+    if (grantType !== "authorization_code") {
+      res.status(400).json({ error: "invalid_grant_type", message: "Use authorization_code or refresh_token." });
+      return;
+    }
+
     const redirectUri = readBodyStringField(req.body, "redirect_uri");
     const code = readBodyStringField(req.body, "code");
     const codeVerifier = readBodyStringField(req.body, "code_verifier");
@@ -40,21 +101,13 @@ export const rsuTokenExchange = onRequest({
     if (!clientId || !redirectUri || !code || !codeVerifier) {
       res.status(400).json({
         error: "missing_params",
+        grant_type: "authorization_code",
         required: ["client_id", "redirect_uri", "code", "code_verifier"],
       });
       return;
     }
 
-    const secret = rsuOauthClientSecret.value().trim();
-    if (!secret) {
-      res.status(500).json({ error: "missing_server_secret", message: "RSU_OAUTH_CLIENT_SECRET is not configured." });
-      return;
-    }
-
-    // RunSignup's auth-code redemption endpoint (matches the Flutter client direct exchange).
-    // IMPORTANT: Keep the parameter names aligned with their expected payload.
     const body = new URLSearchParams();
-    // OAuth2 Authorization Code + PKCE
     body.set("grant_type", "authorization_code");
     body.set("client_id", clientId);
     body.set("client_secret", secret);
@@ -72,7 +125,6 @@ export const rsuTokenExchange = onRequest({
     });
 
     const text = await upstream.text();
-    res.setHeader("Cache-Control", "no-store");
 
     if (upstream.status !== 200) {
       res.status(400).json({
@@ -83,7 +135,6 @@ export const rsuTokenExchange = onRequest({
       return;
     }
 
-    // Return the OAuth payload as-is (JSON string), letting the client parse it.
     res.status(200).send(text);
   } catch (e: any) {
     res.status(500).json({

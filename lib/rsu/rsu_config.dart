@@ -10,7 +10,7 @@ class RsuConfig {
   /// Cloud Function proxy to avoid browser CORS when running on web.
   ///
   /// URL format for HTTPS functions:
-  ///   https://<region>-<projectId>.cloudfunctions.net/<functionName>
+  /// `https://REGION-PROJECT_ID.cloudfunctions.net/FUNCTION_NAME`
   ///
   /// This function is created as `rsuProxy` in `functions/src/rsuProxy.ts`.
   static String firebaseFunctionsProxyBase({required String projectId, String region = 'us-central1'}) => 'https://$region-$projectId.cloudfunctions.net/rsuProxy';

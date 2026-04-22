@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -294,8 +293,8 @@ class _ResultsPageState extends State<ResultsPage> {
       final header = '${headers[dpi] ?? ''}'.trim();
       final finishersForThisDivision = (entry.value is int) ? entry.value as int : int.tryParse('${entry.value ?? 0}') ?? 0;
 
-      if (placementVal != null && '${placementVal}'.trim().isNotEmpty) {
-        divisionPlace = '${placementVal}'.trim();
+      if (placementVal != null && '$placementVal'.trim().isNotEmpty) {
+        divisionPlace = '$placementVal'.trim();
         matchedDivisionFinishers = finishersForThisDivision;
         if (divisionLabel.isEmpty && header.isNotEmpty) {
           divisionLabel = header;
@@ -482,7 +481,6 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
     final dataColor = _colorFromHex(widget.theme?.dataColorHex ?? '') ?? cs.tertiary;
     final nameColor = _colorFromHex(widget.theme?.nameColorHex ?? '') ?? cs.onSurface;
 
-    final raceName = widget.race?.name ?? '';
     final rawRaceLogoUrl = widget.race?.logoUrl ?? '';
     final raceLogoUrl = _normalizeRemoteImageUrl(rawRaceLogoUrl);
     if (rawRaceLogoUrl.trim().isEmpty) {
@@ -614,6 +612,7 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                     stroke: Colors.white,
                     style: GoogleFonts.alfaSlabOne(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2),
                     textAlign: TextAlign.center,
+                    strokeWidth: 2,
                   ),
                 ),
               ),
@@ -716,7 +715,7 @@ class _OutlinedDisplayText extends StatelessWidget {
   final TextAlign textAlign;
   final double strokeWidth;
 
-  const _OutlinedDisplayText({required this.text, required this.style, required this.stroke, required this.fill, required this.textAlign, this.strokeWidth = 2});
+  const _OutlinedDisplayText({required this.text, required this.style, required this.stroke, required this.fill, required this.textAlign, required this.strokeWidth});
 
   @override
   Widget build(BuildContext context) {
@@ -734,55 +733,6 @@ class _OutlinedDisplayText extends StatelessWidget {
         ),
         Text(text, textAlign: textAlign, style: style.copyWith(color: fill)),
       ],
-    );
-  }
-}
-
-class _RaceLogoImage extends StatelessWidget {
-  final String url;
-  final double height;
-
-  const _RaceLogoImage({required this.url, required this.height});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    if (url.trim().isEmpty) {
-      return Container(
-        height: height,
-        width: height * 2.2,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: cs.outline.withValues(alpha: 0.18))),
-        child: Center(child: Icon(Icons.image_not_supported_outlined, color: cs.onSurfaceVariant, size: 32)),
-      );
-    }
-
-    return Image.network(
-      url,
-      height: height,
-      fit: BoxFit.contain,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded) return child;
-        if (frame != null) return child;
-        return Container(
-          height: height,
-          width: height * 2.2,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: cs.outline.withValues(alpha: 0.18))),
-          child: const Center(child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))),
-        );
-      },
-      errorBuilder: (context, error, stack) {
-        debugPrint('Race logo failed to load: $error (url=$url)');
-        return Container(
-          height: height,
-          width: height * 2.2,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: cs.error.withValues(alpha: 0.35))),
-          child: Center(child: Icon(Icons.broken_image_outlined, color: cs.error, size: 32)),
-        );
-      },
     );
   }
 }

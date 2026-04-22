@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -254,7 +253,7 @@ class _ColorRow extends StatelessWidget {
   }
 
   static String _toHex(Color c) {
-    final v = c.value & 0xFFFFFF;
+    final v = c.toARGB32() & 0xFFFFFF;
     return '#${v.toRadixString(16).padLeft(6, '0')}';
   }
 }

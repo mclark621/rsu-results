@@ -143,6 +143,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     // Prompt for logout code before locking into kiosk mode
     final logoutCode = await _promptForLogoutCode();
     if (logoutCode == null) return; // User cancelled
+    if (!mounted) return;
 
     final appState = context.read<RsuAppState>();
     await appState.setRaceId(raceId);
@@ -161,7 +162,8 @@ class _RacePickerPageState extends State<RacePickerPage> {
         debugPrint('KIOSK: Failed to clear browser history: $e');
       }
     }
-    
+
+    if (!mounted) return;
     context.go('${AppRoutes.search}?raceId=$raceId');
   }
 
@@ -333,18 +335,28 @@ class _RacePickerPageState extends State<RacePickerPage> {
             ],
             if (_loading) const LinearProgressIndicator(minHeight: 2),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedRaceId,
-              items: _races.map((r) => DropdownMenuItem(value: r.raceId, child: Text(r.name, overflow: TextOverflow.ellipsis))).toList(growable: false),
+            InputDecorator(
               decoration: _dropdownDecoration(context, label: 'Select an event'),
-              onChanged: (v) => setState(() => _selectedRaceId = v),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  value: _selectedRaceId,
+                  items: _races.map((r) => DropdownMenuItem(value: r.raceId, child: Text(r.name, overflow: TextOverflow.ellipsis))).toList(growable: false),
+                  onChanged: (v) => setState(() => _selectedRaceId = v),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              value: _timeout,
-              items: const [10, 15, 20, 25, 30, 45].map((s) => DropdownMenuItem(value: s, child: Text('$s seconds'))).toList(growable: false),
+            InputDecorator(
               decoration: _dropdownDecoration(context, label: 'Timeout'),
-              onChanged: (v) => setState(() => _timeout = v ?? 20),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  isExpanded: true,
+                  value: _timeout,
+                  items: const [10, 15, 20, 25, 30, 45].map((s) => DropdownMenuItem(value: s, child: Text('$s seconds'))).toList(growable: false),
+                  onChanged: (v) => setState(() => _timeout = v ?? 20),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

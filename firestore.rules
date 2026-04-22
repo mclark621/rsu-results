@@ -1,7 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default-deny. Open access only for the collections you explicitly add.
-    allow read, write: if false;
+    // Shared OAuth/client config (read by the app before sign-in). Writes via console/Admin SDK only.
+    match /public_config/{docId} {
+      allow read: if docId == 'rsu';
+      allow write: if false;
+    }
+
+    // Per-user timer API credentials (canonical path).
+    match /users/{userId}/rsu_timer_account/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Legacy top-level timer accounts: only the owning Firebase user may access.
+    match /rsu_timer_accounts/{docId} {
+      allow read: if request.auth != null
+        && 'ownerUid' in resource.data
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null
+        && 'ownerUid' in request.resource.data
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && 'ownerUid' in resource.data
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
