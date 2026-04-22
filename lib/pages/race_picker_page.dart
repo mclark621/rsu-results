@@ -66,17 +66,34 @@ class _RacePickerPageState extends State<RacePickerPage> {
       final timerKeyOk = (timerKey ?? '').trim().isNotEmpty;
       final timerSecretOk = (timerSecret ?? '').trim().isNotEmpty;
 
-      debugPrint('RacePicker: list races using creds: timerKey=$timerKeyOk timerSecret=$timerSecretOk');
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      debugPrint('RacePicker: Firebase user = ${firebaseUser?.uid ?? "NULL"}');
+      debugPrint('RacePicker: rsuUserId = ${appState.rsuUserId ?? "NULL"}');
+      debugPrint('RacePicker: timerKey=${timerKeyOk ? "SET" : "MISSING"} timerSecret=${timerSecretOk ? "SET" : "MISSING"}');
 
       // Important: if Timer credentials are missing, the upstream `/rest/races` call will return the public
-      // catalog, which makes it look like we have access to “all races”. That’s misleading in the Timer
+      // catalog, which makes it look like we have access to "all races". That's misleading in the Timer
       // workflow, where the creds should naturally restrict what you can access.
       if (!timerKeyOk || !timerSecretOk) {
-        throw Exception(
-          'Timer API credentials are missing on this device.\n\n'
-          'Expected: rsu_api_key (query param) + X-RSU-API-SECRET (header).\n'
-          'Fix: open Global Settings and set them, or ensure they exist in Firestore so this device can hydrate them after login.',
-        );
+        final firebaseSignedIn = firebaseUser != null;
+        debugPrint('RacePicker: credentials missing. firebaseSignedIn=$firebaseSignedIn');
+        setState(() {
+          _error = [
+            'Timer API credentials are missing on this device.',
+            '',
+            'Expected: rsu_api_key (query param) + X-RSU-API-SECRET (header).',
+            'Fix: open Global Settings and set them, then Save (sync to server).',
+            if (!firebaseSignedIn) ...[
+              '',
+              'Note: Firebase is not signed in right now, so this device cannot hydrate creds from Firestore. This usually resolves after signing in again.',
+            ],
+            '',
+            'Debug info:',
+            '  Firebase UID: ${firebaseUser?.uid ?? "null"}',
+            '  RSU User ID: ${appState.rsuUserId ?? "null"}',
+          ].join('\n');
+        });
+        return;
       }
 
       final api = RsuApi();
@@ -172,6 +189,40 @@ class _RacePickerPageState extends State<RacePickerPage> {
             const SizedBox(height: 10),
             if (_error != null) ...[
               CopyableErrorPanel(message: _error!, title: 'Load races failed'),
+              if ((_error ?? '').contains('Timer API credentials are missing')) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.actionOrange,
+                          foregroundColor: AppColors.onActionOrange,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          splashFactory: NoSplash.splashFactory,
+                        ),
+                        onPressed: _loading ? null : () => context.push(AppRoutes.settingsGlobal),
+                        icon: Icon(Icons.manage_accounts_outlined, color: AppColors.onActionOrange),
+                        label: Text('Open Global Settings', style: TextStyle(color: AppColors.onActionOrange, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: cs.surfaceContainerHighest,
+                        foregroundColor: cs.onSurface,
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      onPressed: _loading ? null : _load,
+                      icon: Icon(Icons.refresh, color: cs.onSurface),
+                      label: Text('Retry', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 10),
             ],
             if (_debugEnabled || (_races.isEmpty && _debugInfo != null)) ...[

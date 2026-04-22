@@ -42,6 +42,8 @@ class _LoginPageState extends State<LoginPage> {
         throw StateError('Missing redirect_uri. Configure Firestore doc public_config/rsu (oauth_redirect_uri).');
       }
 
+      // On web, the app origin must match the configured redirect URI origin.
+      // If they don’t match, PKCE state (localStorage) won’t line up after redirect.
       if (kIsWeb) {
         final currentOrigin = Uri.base.origin;
         final configuredOrigin = Uri.tryParse(effectiveRedirect)?.origin ?? '';
@@ -49,7 +51,7 @@ class _LoginPageState extends State<LoginPage> {
         if (configuredOrigin != currentOrigin) {
           throw StateError(
             'This page is running on "$currentOrigin" but Firestore redirect_uri is "$configuredOrigin".\n\n'
-            'Open the app at the configured origin (or update public_config/rsu) and try again.',
+            'Open the app at the configured origin (or update public_config/rsu) and try again.'
           );
         }
       }
@@ -65,20 +67,21 @@ class _LoginPageState extends State<LoginPage> {
 
       await appState.savePkceTransaction(state: state, verifier: verifier);
 
-      if (mounted) context.go('${AppRoutes.oauthWaiting}?state=$state');
+      if (mounted) {
+        context.go('${AppRoutes.oauthWaiting}?state=$state');
+      }
       await oauth.launchAuthorizationUrl(authUrl);
     } catch (e) {
       debugPrint('OAuth start failed: $e');
       setState(() => _error = '$e');
     } finally {
-      if (!mounted) return;
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -86,32 +89,39 @@ class _LoginPageState extends State<LoginPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Runsignup Results', textAlign: TextAlign.center, style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 20),
-                  if (_error != null) ...[
-                    CopyableErrorPanel(message: _error!, title: 'Sign-in error'),
-                    const SizedBox(height: 16),
-                  ],
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.actionOrange,
-                        foregroundColor: AppColors.onActionOrange,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-                        textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                        splashFactory: NoSplash.splashFactory,
+                  Text(
+                    'Runsignup Results',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: _loading ? null : _startOAuth,
+                    style: ButtonStyle(
+                      backgroundColor: const WidgetStatePropertyAll(AppColors.actionOrange),
+                      foregroundColor: const WidgetStatePropertyAll(AppColors.onActionOrange),
+                      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+                      splashFactory: NoSplash.splashFactory,
+                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 18, vertical: 14)),
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      onPressed: _loading ? null : _startOAuth,
-                      icon: const Icon(Icons.login, color: AppColors.onActionOrange, size: 20),
-                      label: Text(_loading ? 'Opening…' : 'Sign in with RunSignup', style: const TextStyle(color: AppColors.onActionOrange)),
+                    ),
+                    icon: const Icon(Icons.login, color: AppColors.onActionOrange, size: 18),
+                    label: Text(
+                      _loading ? 'Opening…' : 'Sign in with RunSignup',
+                      style: const TextStyle(color: AppColors.onActionOrange),
                     ),
                   ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 14),
+                    CopyableErrorPanel(message: _error!, title: 'Sign-in error'),
+                  ],
                 ],
               ),
             ),

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -82,6 +83,14 @@ class _OAuthCallbackPageState extends State<OAuthCallbackPage> {
           await appState.setRsuIdentity(rsuUserId: minted.rsuUserId, email: minted.email, firstName: minted.firstName, lastName: minted.lastName);
           debugPrint('OAuth callback: rsu identity hydrated from rsuFirebaseLogin user payload.');
         }
+
+        // NOW that Firebase is signed in, hydrate timer API credentials from Firestore.
+        // This is critical: setRsuIdentity was called BEFORE Firebase sign-in, so its internal
+        // hydration attempt failed. We must do it again now that we have a Firebase session.
+        debugPrint('OAuth callback: BEFORE hydration - key=${appState.timerApiKey} secret=${appState.timerApiSecret != null}');
+        debugPrint('OAuth callback: Firebase currentUser.uid = ${FirebaseAuth.instance.currentUser?.uid}');
+        await appState.hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
+        debugPrint('OAuth callback: AFTER hydration - key=${appState.timerApiKey} secret=${appState.timerApiSecret != null}');
 
         if (mounted) setState(() => _firebaseAuthError = null);
       } catch (e) {

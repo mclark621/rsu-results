@@ -123,42 +123,70 @@ class RsuAppState extends ChangeNotifier {
   }
 
   Future<void> _hydrateTimerCredentialsFromFirestore({required bool overwriteLocal}) async {
+    debugPrint('HYDRATE: Starting. overwriteLocal=$overwriteLocal');
+    
     await _ensureFirebaseSessionIfPossible();
     final firebaseUser = FirebaseAuth.instance.currentUser;
+    debugPrint('HYDRATE: Firebase user = ${firebaseUser?.uid ?? "NULL"}');
 
     final rsuId = (_rsuUserId ?? '').trim();
+    debugPrint('HYDRATE: rsuUserId = ${rsuId.isEmpty ? "EMPTY" : rsuId}');
 
     // Prefer canonical lookup by Firebase uid.
     RsuTimerAccount? acct;
     if (firebaseUser != null) {
+      debugPrint('HYDRATE: Looking up by Firebase UID: ${firebaseUser.uid}');
       acct = await _timerAccountService.getAccountByFirebaseUid(firebaseUser.uid);
+      debugPrint('HYDRATE: Lookup by Firebase UID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
     }
 
     // Backwards compatibility: older builds keyed the document by rsuUserId.
     if (acct == null && rsuId.isNotEmpty) {
+      debugPrint('HYDRATE: Looking up by rsuUserId doc ID: $rsuId');
       acct = await _timerAccountService.getAccount(rsuId);
+      debugPrint('HYDRATE: Lookup by rsuUserId doc ID result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
     }
 
-    if (acct == null) return;
+    // Fallback: query by rsuUserId FIELD (handles auto-generated doc IDs or different naming)
+    if (acct == null && rsuId.isNotEmpty) {
+      debugPrint('HYDRATE: Looking up by rsuUserId FIELD query: $rsuId');
+      acct = await _timerAccountService.getAccountByRsuUserIdField(rsuId);
+      debugPrint('HYDRATE: Lookup by rsuUserId FIELD result: ${acct == null ? "NOT FOUND" : "FOUND key=${acct.timerApiKey.isNotEmpty}"}');
+    }
+
+    if (acct == null) {
+      debugPrint('HYDRATE: No account found in Firestore after ALL lookups - credentials cannot be hydrated!');
+      debugPrint('HYDRATE: Tried paths: rsu_timer_accounts/${firebaseUser?.uid}, rsu_timer_accounts/$rsuId, and query by rsuUserId field');
+      return;
+    }
 
     try {
-
       final key = acct.timerApiKey.trim();
       final secret = acct.timerApiSecret;
-      if (key.isEmpty || secret.trim().isEmpty) return;
+      debugPrint('HYDRATE: Account found. key=${key.isEmpty ? "EMPTY" : "SET(${key.length} chars)"} secret=${secret.trim().isEmpty ? "EMPTY" : "SET(${secret.length} chars)"}');
+      
+      if (key.isEmpty || secret.trim().isEmpty) {
+        debugPrint('HYDRATE: Account exists but key/secret are empty - skipping');
+        return;
+      }
 
       final hasLocalKey = (_timerApiKey ?? '').trim().isNotEmpty;
       final hasLocalSecret = (_timerApiSecret ?? '').trim().isNotEmpty;
       final hasLocalBoth = hasLocalKey && hasLocalSecret;
 
-      if (!overwriteLocal && hasLocalBoth) return;
+      if (!overwriteLocal && hasLocalBoth) {
+        debugPrint('HYDRATE: Local credentials already present and overwriteLocal=false - skipping');
+        return;
+      }
 
+      debugPrint('HYDRATE: Storing credentials to local storage...');
       await _store.setTimerApiKey(key);
       await _store.setTimerApiSecret(secret);
       _timerApiKey = key;
       _timerApiSecret = secret;
+      debugPrint('HYDRATE: SUCCESS - credentials stored locally');
     } catch (e) {
-      debugPrint('Hydrate timer credentials from Firestore failed (ignored): $e');
+      debugPrint('HYDRATE: FAILED to store credentials: $e');
     }
   }
 
