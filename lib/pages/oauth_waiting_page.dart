@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
+import 'package:rsu_results/theme.dart';
 
 class OAuthWaitingPage extends StatefulWidget {
   final String state;
@@ -25,7 +27,7 @@ class _OAuthWaitingPageState extends State<OAuthWaitingPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _load();
       // If OAuth happens in another tab/window, we still want this screen to
-      // detect the token once it’s written to localStorage and advance.
+      // detect the token once it's written to localStorage and advance.
       // A lightweight poll avoids wiring more complex cross-tab messaging.
       _startPollingForToken();
     });
@@ -86,76 +88,90 @@ class _OAuthWaitingPageState extends State<OAuthWaitingPage> {
     final redirectUri = _redirectUri ?? '${Uri.base.origin}/oauth/callback';
 
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Card(
+      appBar: AppBar(title: const Text('Runsignup Results')),
+      body: CenteredSurfacePanel(
+        maxWidth: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.hourglass_bottom, color: cs.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Finish sign-in',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'After you approve access, RunSignup will redirect back to the app to complete sign-in.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+            ),
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _checking ? null : () => _checkForToken(navigateIfFound: true, silent: false),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionOrange,
+                foregroundColor: AppColors.onActionOrange,
+                minimumSize: const Size.fromHeight(54),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                splashFactory: NoSplash.splashFactory,
+              ),
+              icon: Icon(Icons.refresh, color: AppColors.onActionOrange),
+              label: Text(
+                _checking ? 'Checking…' : 'I approved — continue',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.onActionOrange),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'If you see an approval/redirect error, it usually means the redirect_uri in RunSignup doesn\'t exactly match what the app sent.',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.8), height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Text('redirect_uri currently being sent:', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.hourglass_bottom, color: cs.primary),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text('Finish sign-in in your browser', style: Theme.of(context).textTheme.titleLarge)),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'After you approve access, RunSignup will redirect back to the app to complete sign-in.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    const LinearProgressIndicator(),
-                    const SizedBox(height: 16),
-                    FilledButton.tonalIcon(
-                      onPressed: _checking ? null : () => _checkForToken(navigateIfFound: true, silent: false),
-                      icon: Icon(Icons.refresh, color: cs.onSecondaryContainer),
-                      label: Text(_checking ? 'Checking…' : 'I approved in the browser — continue', style: TextStyle(color: cs.onSecondaryContainer)),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'If you see an approval/redirect error, it usually means the redirect_uri in RunSignup doesn’t exactly match what the app sent.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 12),
-                    Text('redirect_uri currently being sent (copy/paste):', style: Theme.of(context).textTheme.labelMedium),
-                    const SizedBox(height: 8),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: cs.outlineVariant),
+                    Expanded(child: SelectableText(redirectUri, style: Theme.of(context).textTheme.bodyMedium)),
+                    const SizedBox(width: 8),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: redirectUri));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied redirect_uri to clipboard')));
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: cs.surfaceContainerHighest,
+                        foregroundColor: cs.onSurface,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        child: Row(
-                          children: [
-                            Expanded(child: SelectableText(redirectUri, style: Theme.of(context).textTheme.bodyMedium)),
-                            const SizedBox(width: 8),
-                            FilledButton.tonal(
-                              onPressed: () async {
-                                await Clipboard.setData(ClipboardData(text: redirectUri));
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied redirect_uri to clipboard')));
-                                }
-                              },
-                              child: const Text('Copy'),
-                            ),
-                          ],
-                        ),
-                      ),
+                      icon: Icon(Icons.copy_outlined, size: 16, color: cs.onSurface),
+                      label: Text('Copy', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurface)),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

@@ -8,11 +8,13 @@ import 'package:provider/provider.dart';
 
 import 'package:rsu_results/components/app_color_picker_sheet.dart';
 import 'package:rsu_results/components/background_color_tile.dart';
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/components/logout_action_button.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
+import 'package:rsu_results/theme.dart';
 
 class RaceSettingsPage extends StatefulWidget {
   final String raceId;
@@ -81,7 +83,7 @@ class _RaceSettingsPageState extends State<RaceSettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('Bay City Timing & Events'),
         leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
           IconButton(
@@ -92,85 +94,101 @@ class _RaceSettingsPageState extends State<RaceSettingsPage> {
           const LogoutActionButton(),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: _loading
-                    ? const LinearProgressIndicator()
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text('Race settings', style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 10),
-                          if (_error != null) ...[
-                            CopyableErrorPanel(message: _error!, title: 'Load settings failed'),
-                            const SizedBox(height: 10),
-                          ],
-                          const SizedBox(height: 10),
-                          Text('Appearance', style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          BackgroundColorTile(
-                            color: context.watch<RsuAppState>().pageBackgroundColor,
-                            onTap: () async {
-                              final app = context.read<RsuAppState>();
-                              final picked = await AppColorPickerSheet.show(context, initialColor: app.pageBackgroundColor, title: 'Page background');
-                              if (picked == null && app.pageBackgroundColor == null) return;
-                              await app.setPageBackgroundColor(picked);
-                            },
-                          ),
-                          const SizedBox(height: 18),
-                          if (s != null) ...[
-                            _ColorRow(
-                              label: 'Results label color',
-                              value: s.labelColorHex,
-                              onChanged: (v) => setState(() => _settings = s.copyWith(labelColorHex: v)),
-                            ),
-                            _ColorRow(
-                              label: 'Results data color',
-                              value: s.dataColorHex,
-                              onChanged: (v) => setState(() => _settings = s.copyWith(dataColorHex: v)),
-                            ),
-                            _ColorRow(
-                              label: 'Participant name color',
-                              value: s.nameColorHex,
-                              onChanged: (v) => setState(() => _settings = s.copyWith(nameColorHex: v)),
-                            ),
-                            _ColorRow(
-                              label: 'Background color',
-                              value: s.backgroundColorHex,
-                              onChanged: (v) => setState(() => _settings = s.copyWith(backgroundColorHex: v)),
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: _pickSponsorLogo,
-                              icon: Icon(Icons.image_outlined, color: cs.primary),
-                              label: Text('Upload sponsor logo', style: TextStyle(color: cs.primary)),
-                            ),
-                            const SizedBox(height: 10),
-                            if (s.sponsorLogoDataUrl.isNotEmpty) ...[
-                              const Text('Current sponsor logo:'),
-                              const SizedBox(height: 8),
-                              _SponsorLogoThumb(dataUrl: s.sponsorLogoDataUrl),
-                              const SizedBox(height: 10),
-                            ],
-                            const Spacer(),
-                            FilledButton.icon(
-                              onPressed: _save,
-                              icon: Icon(Icons.save_outlined, color: cs.onPrimary),
-                              label: Text('Save', style: TextStyle(color: cs.onPrimary)),
-                            ),
-                          ],
-                        ],
+      body: CenteredSurfacePanel(
+        maxWidth: 720,
+        child: _loading
+            ? const LinearProgressIndicator()
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Race settings', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Customize the appearance for this specific race.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_error != null) ...[
+                    CopyableErrorPanel(message: _error!, title: 'Load settings failed'),
+                    const SizedBox(height: 10),
+                  ],
+                  Text('Appearance', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  BackgroundColorTile(
+                    color: context.watch<RsuAppState>().pageBackgroundColor,
+                    onTap: () async {
+                      final app = context.read<RsuAppState>();
+                      final picked = await AppColorPickerSheet.show(context, initialColor: app.pageBackgroundColor, title: 'Page background');
+                      if (picked == null && app.pageBackgroundColor == null) return;
+                      await app.setPageBackgroundColor(picked);
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  if (s != null) ...[
+                    _ColorRow(
+                      label: 'Results label color',
+                      value: s.labelColorHex,
+                      onChanged: (v) => setState(() => _settings = s.copyWith(labelColorHex: v)),
+                    ),
+                    _ColorRow(
+                      label: 'Results data color',
+                      value: s.dataColorHex,
+                      onChanged: (v) => setState(() => _settings = s.copyWith(dataColorHex: v)),
+                    ),
+                    _ColorRow(
+                      label: 'Participant name color',
+                      value: s.nameColorHex,
+                      onChanged: (v) => setState(() => _settings = s.copyWith(nameColorHex: v)),
+                    ),
+                    _ColorRow(
+                      label: 'Background color',
+                      value: s.backgroundColorHex,
+                      onChanged: (v) => setState(() => _settings = s.copyWith(backgroundColorHex: v)),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _pickSponsorLogo,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: cs.surfaceContainerHighest,
+                        foregroundColor: cs.onSurface,
+                        minimumSize: const Size.fromHeight(48),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        splashFactory: NoSplash.splashFactory,
                       ),
+                      icon: Icon(Icons.image_outlined, color: cs.primary),
+                      label: Text('Upload sponsor logo', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.onSurface)),
+                    ),
+                    const SizedBox(height: 10),
+                    if (s.sponsorLogoDataUrl.isNotEmpty) ...[
+                      Text('Current sponsor logo:', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                      const SizedBox(height: 8),
+                      _SponsorLogoThumb(dataUrl: s.sponsorLogoDataUrl),
+                      const SizedBox(height: 10),
+                    ],
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _save,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.actionOrange,
+                        foregroundColor: AppColors.onActionOrange,
+                        minimumSize: const Size.fromHeight(54),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        splashFactory: NoSplash.splashFactory,
+                      ),
+                      icon: Icon(Icons.save_outlined, color: AppColors.onActionOrange),
+                      label: Text('Save', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppColors.onActionOrange)),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Tip: these settings apply only to this race.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.8), height: 1.4),
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ),
-        ),
       ),
     );
   }

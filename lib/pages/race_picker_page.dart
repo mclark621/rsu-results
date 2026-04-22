@@ -163,7 +163,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select Event'),
+        title: const Text('Bay City Timing & Events'),
         leading: IconButton(onPressed: () => context.go(AppRoutes.dates), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
           IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
@@ -182,11 +182,16 @@ class _RacePickerPageState extends State<RacePickerPage> {
           children: [
             Row(
               children: [
-                Expanded(child: Text('Races', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+                Expanded(child: Text('Select Event', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
                 IconButton(tooltip: 'Refresh', onPressed: _loading ? null : _load, icon: Icon(Icons.refresh, color: cs.primary)),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
+            Text(
+              'Choose the race you want to display results for.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+            ),
+            const SizedBox(height: 16),
             if (_error != null) ...[
               CopyableErrorPanel(message: _error!, title: 'Load races failed'),
               if ((_error ?? '').contains('Timer API credentials are missing')) ...[

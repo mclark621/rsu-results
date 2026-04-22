@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
@@ -11,6 +12,7 @@ import 'package:rsu_results/rsu/rsu_api.dart';
 import 'package:rsu_results/rsu/rsu_oauth_service.dart';
 import 'package:rsu_results/rsu/web_frame_utils.dart';
 import 'package:rsu_results/rsu/rsu_firebase_auth_service.dart';
+import 'package:rsu_results/theme.dart';
 
 class OAuthCallbackPage extends StatefulWidget {
   final String code;
@@ -36,7 +38,7 @@ class _OAuthCallbackPageState extends State<OAuthCallbackPage> {
   }
 
   Future<void> _finish() async {
-    // Best-effort: remove `?code=...&state=...` from the top-level URL so refreshes don’t
+    // Best-effort: remove `?code=...&state=...` from the top-level URL so refreshes don't
     // re-trigger routing. (We keep the hash route so the app still works with hash routing.)
     WebFrameUtils.clearTopLevelQueryPreserveHash();
 
@@ -112,49 +114,89 @@ class _OAuthCallbackPageState extends State<OAuthCallbackPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(_error == null ? Icons.check_circle_outline : Icons.error_outline, color: _error == null ? cs.primary : cs.error),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(_error == null ? 'Signing you in…' : 'Sign-in failed', style: Theme.of(context).textTheme.titleLarge)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (_error != null) ...[
-                      CopyableErrorPanel(message: _error!, title: 'OAuth callback failed'),
-                      const SizedBox(height: 12),
-                    ] else if (_firebaseAuthError != null) ...[
-                      CopyableErrorPanel(message: _firebaseAuthError!, title: 'Firebase sign-in failed'),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () => context.go(AppRoutes.dates),
-                        icon: Icon(Icons.arrow_forward, color: cs.onPrimary),
-                        label: Text('Continue without Firebase', style: TextStyle(color: cs.onPrimary)),
-                      ),
-                      const SizedBox(height: 12),
-                    ] else ...[
-                      const LinearProgressIndicator(),
-                      const SizedBox(height: 12),
-                      Text('Finishing sign-in…', style: Theme.of(context).textTheme.bodySmall),
-                    ],
-                    Text('You can close the browser tab if one is open.', style: Theme.of(context).textTheme.bodySmall),
-                  ],
+      appBar: AppBar(title: const Text('Runsignup Results')),
+      body: CenteredSurfacePanel(
+        maxWidth: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(_error == null ? Icons.check_circle_outline : Icons.error_outline, color: _error == null ? cs.primary : cs.error),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _error == null ? 'Signing you in…' : 'Sign-in failed',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            if (_error != null) ...[
+              Text(
+                'Something went wrong during the OAuth callback.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+              ),
+              const SizedBox(height: 16),
+              CopyableErrorPanel(message: _error!, title: 'OAuth callback failed'),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => context.go(AppRoutes.login),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.actionOrange,
+                  foregroundColor: AppColors.onActionOrange,
+                  minimumSize: const Size.fromHeight(54),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  splashFactory: NoSplash.splashFactory,
+                ),
+                icon: Icon(Icons.arrow_back, color: AppColors.onActionOrange),
+                label: Text(
+                  'Try again',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.onActionOrange),
                 ),
               ),
+            ] else if (_firebaseAuthError != null) ...[
+              Text(
+                'RSU sign-in succeeded but Firebase sign-in failed.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+              ),
+              const SizedBox(height: 16),
+              CopyableErrorPanel(message: _firebaseAuthError!, title: 'Firebase sign-in failed'),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => context.go(AppRoutes.dates),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.actionOrange,
+                  foregroundColor: AppColors.onActionOrange,
+                  minimumSize: const Size.fromHeight(54),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  splashFactory: NoSplash.splashFactory,
+                ),
+                icon: Icon(Icons.arrow_forward, color: AppColors.onActionOrange),
+                label: Text(
+                  'Continue without Firebase',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.onActionOrange),
+                ),
+              ),
+            ] else ...[
+              Text(
+                'Finishing your sign-in process.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+              ),
+              const SizedBox(height: 16),
+              const LinearProgressIndicator(),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Tip: you can close the browser tab if one is open.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.8), height: 1.4),
             ),
-          ),
+          ],
         ),
       ),
     );

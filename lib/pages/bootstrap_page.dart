@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/rsu/rsu_firebase_auth_service.dart';
-
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/nav.dart';
 
@@ -48,7 +48,7 @@ class _BootstrapPageState extends State<BootstrapPage> {
         await state.hydrateTimerCredentialsFromFirestore(overwriteLocal: true);
       } catch (e) {
         // If this fails we can still run the app with RSU token-only (Option 1 behavior).
-        // But we log it so it’s diagnosable.
+        // But we log it so it's diagnosable.
         debugPrint('Bootstrap Firebase sign-in/hydration failed (ignored): $e');
       }
 
@@ -61,19 +61,34 @@ class _BootstrapPageState extends State<BootstrapPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 320,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.timer_outlined, size: 40, color: cs.primary),
-              const SizedBox(height: 14),
-              Text('Preparing…', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 10),
-              const LinearProgressIndicator(),
-            ],
-          ),
+      appBar: AppBar(title: const Text('Runsignup Results')),
+      body: CenteredSurfacePanel(
+        maxWidth: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.timer_outlined, size: 40, color: cs.primary),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Preparing…',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Setting up your session.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+            ),
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+          ],
         ),
       ),
     );

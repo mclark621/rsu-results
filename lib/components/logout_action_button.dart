@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
+import 'package:rsu_results/theme.dart';
 
 class LogoutActionButton extends StatelessWidget {
   final Color? color;
@@ -17,7 +18,7 @@ class LogoutActionButton extends StatelessWidget {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: cs.surface,
       builder: (context) {
         const title = 'Log out?';
         const subtitle = 'This will clear your stored OAuth token on this device.';
@@ -29,19 +30,33 @@ class LogoutActionButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9))),
                 const SizedBox(height: 16),
                 FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.actionOrange,
+                    foregroundColor: AppColors.onActionOrange,
+                    minimumSize: const Size.fromHeight(54),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    splashFactory: NoSplash.splashFactory,
+                  ),
                   onPressed: () => context.pop(true),
-                  icon: Icon(Icons.logout, color: cs.onPrimary),
-                  label: Text('Log out', style: TextStyle(color: cs.onPrimary)),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Log out'),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                  ),
                   onPressed: () => context.pop(false),
-                  child: Text('Cancel', style: TextStyle(color: cs.primary)),
+                  child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
                 ),
               ],
             ),

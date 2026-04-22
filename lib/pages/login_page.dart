@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
@@ -43,7 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       // On web, the app origin must match the configured redirect URI origin.
-      // If they don’t match, PKCE state (localStorage) won’t line up after redirect.
+      // If they don't match, PKCE state (localStorage) won't line up after redirect.
       if (kIsWeb) {
         final currentOrigin = Uri.base.origin;
         final configuredOrigin = Uri.tryParse(effectiveRedirect)?.origin ?? '';
@@ -84,48 +85,50 @@ class _LoginPageState extends State<LoginPage> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Runsignup Results',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: _loading ? null : _startOAuth,
-                    style: ButtonStyle(
-                      backgroundColor: const WidgetStatePropertyAll(AppColors.actionOrange),
-                      foregroundColor: const WidgetStatePropertyAll(AppColors.onActionOrange),
-                      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-                      splashFactory: NoSplash.splashFactory,
-                      padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 18, vertical: 14)),
-                      shape: WidgetStatePropertyAll(
-                        RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                    icon: const Icon(Icons.login, color: AppColors.onActionOrange, size: 18),
-                    label: Text(
-                      _loading ? 'Opening…' : 'Sign in with RunSignup',
-                      style: const TextStyle(color: AppColors.onActionOrange),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 14),
-                    CopyableErrorPanel(message: _error!, title: 'Sign-in error'),
-                  ],
-                ],
+      appBar: AppBar(title: const Text('Runsignup Results')),
+      body: CenteredSurfacePanel(
+        maxWidth: 520,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Welcome',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Sign in with your RunSignup account to continue.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: _loading ? null : _startOAuth,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.actionOrange,
+                foregroundColor: AppColors.onActionOrange,
+                minimumSize: const Size.fromHeight(54),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                splashFactory: NoSplash.splashFactory,
+              ),
+              icon: Icon(Icons.login, color: AppColors.onActionOrange),
+              label: Text(
+                _loading ? 'Opening…' : 'Sign in with RunSignup',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.onActionOrange),
               ),
             ),
-          ),
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              CopyableErrorPanel(message: _error!, title: 'Sign-in error'),
+            ],
+            const SizedBox(height: 10),
+            Text(
+              'Tip: you\'ll be redirected to RunSignup to authenticate.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.8), height: 1.4),
+            ),
+          ],
         ),
       ),
     );

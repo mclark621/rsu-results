@@ -137,7 +137,7 @@ class _BibSearchPageState extends State<BibSearchPage> {
     return Scaffold(
       backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Search Results'),
+        title: const Text('Bay City Timing & Events'),
         leading: IconButton(onPressed: () => context.go(AppRoutes.races), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
           IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
@@ -225,7 +225,7 @@ class _LegacyBibSearchCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (loadingRace) const LinearProgressIndicator(minHeight: 2),
+            if (loadingRace) const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: CircularProgressIndicator())),
             if (error != null) ...[
               const SizedBox(height: 10),
               CopyableErrorPanel(message: error!, title: 'Search failed'),
@@ -242,18 +242,6 @@ class _LegacyBibSearchCard extends StatelessWidget {
               onClear: onClear,
               onDelete: onDelete,
               onSubmitted: onSearch,
-            ),
-            const SizedBox(height: 14),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.actionOrange,
-                foregroundColor: AppColors.onActionOrange,
-                minimumSize: const Size.fromHeight(54),
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: onSearch,
-              child: Text('Find Results', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6, color: AppColors.onActionOrange)),
             ),
             const SizedBox(height: 8),
             Text(
@@ -300,13 +288,35 @@ class _UnifiedSearchSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _LegacyTextField(
-          controller: controller,
-          focusNode: focusNode,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.search,
-          hintText: hint,
-          onSubmitted: (_) => onSubmitted(),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _LegacyTextField(
+                controller: controller,
+                focusNode: focusNode,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.search,
+                hintText: hint,
+                onSubmitted: (_) => onSubmitted(),
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.actionOrange,
+                  foregroundColor: AppColors.onActionOrange,
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: onSubmitted,
+                icon: const Icon(Icons.search, size: 22),
+                label: const Text('Find', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         AnimatedSwitcher(
