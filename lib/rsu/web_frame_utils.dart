@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:web/web.dart' as web;
+
+import 'package:rsu_results/rsu/web_frame_impl_web.dart' if (dart.library.io) 'package:rsu_results/rsu/web_frame_impl_stub.dart' as impl;
 
 class WebFrameUtils {
   static bool get isInIFrame {
     if (!kIsWeb) return false;
     try {
-      return web.window.self != web.window.top;
+      return impl.webFrameIsInIFrame();
     } catch (_) {
       return true;
     }
@@ -18,15 +19,12 @@ class WebFrameUtils {
   /// If we leave `?code=...` in the URL, a refresh can re-trigger routing logic.
   static void clearTopLevelQueryPreserveHash() {
     if (!kIsWeb) return;
-    try {
-      final loc = web.window.location;
-      final origin = loc.origin;
-      final path = loc.pathname;
-      final hash = loc.hash; // includes leading '#', may be empty
-      final newUrl = '$origin$path$hash';
-      web.window.history.replaceState(null, '', newUrl);
-    } catch (_) {
-      // Ignore; URL cleanup is a best-effort improvement.
-    }
+    impl.webFrameClearTopLevelQueryPreserveHash();
+  }
+
+  /// Replace browser history state (e.g. kiosk mode entry URL). Web only.
+  static void replaceHistoryState(String url) {
+    if (!kIsWeb) return;
+    impl.webFrameReplaceHistoryState(url);
   }
 }

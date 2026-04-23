@@ -4,6 +4,9 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
+    "predeploy": [
+      "flutter build web --release"
+    ],
     "public": "build/web",
     "ignore": [
       "firebase.json",

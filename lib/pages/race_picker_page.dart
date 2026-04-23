@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:web/web.dart' as web;
 
 import 'package:rsu_results/components/centered_surface_panel.dart';
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -12,6 +11,7 @@ import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
 import 'package:rsu_results/rsu/rsu_api.dart';
+import 'package:rsu_results/rsu/web_frame_utils.dart';
 import 'package:rsu_results/theme.dart';
 
 class RacePickerPage extends StatefulWidget {
@@ -155,8 +155,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     if (kIsWeb) {
       try {
         final targetUrl = '#${AppRoutes.search}?raceId=$raceId';
-        // Replace all history entries with the search page
-        web.window.history.replaceState(null, '', targetUrl);
+        WebFrameUtils.replaceHistoryState(targetUrl);
         debugPrint('KIOSK: Cleared browser history, replaced with $targetUrl');
       } catch (e) {
         debugPrint('KIOSK: Failed to clear browser history: $e');
