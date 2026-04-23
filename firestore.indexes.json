@@ -1,4 +1,13 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "rsu_timer_accounts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rsuUserId", "order": "ASCENDING" },
+        { "fieldPath": "ownerUid", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

@@ -99,9 +99,6 @@ class RsuApi {
     final isSingleDay = DateUtils.isSameDay(range.start, range.end);
     final isTodayOnly = isSingleDay && DateUtils.isSameDay(range.start, DateTime.now());
 
-    final secretHeader = (timerApiSecret ?? '').trim();
-    final hasTimerSecret = secretHeader.isNotEmpty;
-
     // Note: We no longer hard-block "partner-only" listing on missing Timer credentials.
     // The upstream API will enforce access restrictions based on provided credentials.
 

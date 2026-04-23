@@ -3,21 +3,13 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:web/web.dart' as web;
 
 import 'models.dart';
+import 'prefs_storage.dart';
 import 'rsu_config.dart';
+import 'web_local_storage_prefs_web.dart' if (dart.library.io) 'web_local_storage_prefs_stub.dart';
 
-abstract class _PrefsLike {
-  String? getString(String key);
-  int? getInt(String key);
-
-  Future<void> setString(String key, String value);
-  Future<void> setInt(String key, int value);
-  Future<void> remove(String key);
-}
-
-class _SharedPrefsLike implements _PrefsLike {
+class _SharedPrefsLike implements PrefsStorage {
   final SharedPreferences _prefs;
   _SharedPrefsLike(this._prefs);
 
@@ -37,51 +29,7 @@ class _SharedPrefsLike implements _PrefsLike {
   Future<void> remove(String key) => _prefs.remove(key);
 }
 
-class _WebLocalStoragePrefsLike implements _PrefsLike {
-  final web.Storage? _storage;
-
-  _WebLocalStoragePrefsLike() : _storage = web.window.localStorage;
-
-  @override
-  String? getString(String key) {
-    try {
-      return _storage?.getItem(key);
-    } catch (e) {
-      debugPrint('localStorage getString failed for "$key": $e');
-      return null;
-    }
-  }
-
-  @override
-  int? getInt(String key) {
-    final raw = getString(key);
-    if (raw == null) return null;
-    return int.tryParse(raw);
-  }
-
-  @override
-  Future<void> setString(String key, String value) async {
-    try {
-      _storage?.setItem(key, value);
-    } catch (e) {
-      debugPrint('localStorage setString failed for "$key": $e');
-    }
-  }
-
-  @override
-  Future<void> setInt(String key, int value) => setString(key, value.toString());
-
-  @override
-  Future<void> remove(String key) async {
-    try {
-      _storage?.removeItem(key);
-    } catch (e) {
-      debugPrint('localStorage remove failed for "$key": $e');
-    }
-  }
-}
-
-class _MemoryPrefsLike implements _PrefsLike {
+class _MemoryPrefsLike implements PrefsStorage {
   static final Map<String, Object?> _mem = <String, Object?>{};
 
   @override
@@ -135,8 +83,8 @@ class RsuSettingsStore {
   static const _kPageBackgroundArgb = 'rsu.ui.pageBackgroundArgb';
   static const _kLogoutCode = 'rsu.logoutCode';
 
-  Future<_PrefsLike> _prefs({required bool sensitive}) async {
-    if (kIsWeb) return _WebLocalStoragePrefsLike();
+  Future<PrefsStorage> _prefs({required bool sensitive}) async {
+    if (kIsWeb) return WebLocalStoragePrefs();
 
     try {
       final p = await SharedPreferences.getInstance();
@@ -149,7 +97,7 @@ class RsuSettingsStore {
     }
   }
 
-  Future<T> _safeRead<T>({required bool sensitive, required T fallback, required T Function(_PrefsLike p) read}) async {
+  Future<T> _safeRead<T>({required bool sensitive, required T fallback, required T Function(PrefsStorage p) read}) async {
     try {
       final p = await _prefs(sensitive: sensitive);
       return read(p);
@@ -159,7 +107,7 @@ class RsuSettingsStore {
     }
   }
 
-  Future<void> _safeWrite({required bool sensitive, required Future<void> Function(_PrefsLike p) write}) async {
+  Future<void> _safeWrite({required bool sensitive, required Future<void> Function(PrefsStorage p) write}) async {
     try {
       final p = await _prefs(sensitive: sensitive);
       await write(p);
@@ -352,6 +300,15 @@ class RsuSettingsStore {
       await p.remove(_kAccessToken);
       await p.remove(_kExpiresAtEpochSeconds);
       await p.remove(_kRefreshToken);
+    },
+  );
+
+  Future<String?> getRefreshToken() => _safeRead<String?>(
+    sensitive: true,
+    fallback: null,
+    read: (p) {
+      final v = p.getString(_kRefreshToken);
+      return (v == null || v.trim().isEmpty) ? null : v.trim();
     },
   );
 

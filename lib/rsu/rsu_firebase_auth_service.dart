@@ -12,7 +12,7 @@ class RsuFirebaseAuthService {
 
   Uri _functionUrl({String region = 'us-central1'}) {
     final app = Firebase.app();
-    final projectId = (app.options.projectId ?? '').trim();
+    final projectId = app.options.projectId.trim();
     if (projectId.isEmpty) throw Exception('Missing Firebase projectId (Firebase not configured?)');
     return Uri.parse('https://$region-$projectId.cloudfunctions.net/rsuFirebaseLogin');
   }
@@ -22,10 +22,14 @@ class RsuFirebaseAuthService {
     if (t.isEmpty) throw Exception('Missing RunSignup access token');
 
     final uri = _functionUrl();
-    final resp = await _client.post(uri, headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $t',
-    });
+    final resp = await _client.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $t',
+      },
+      body: '{}',
+    );
 
     final bodyText = utf8.decode(resp.bodyBytes, allowMalformed: true);
     if (resp.statusCode != 200) {

@@ -76,13 +76,56 @@ class RsuOAuthService {
     }
   }
 
-  Future<RsuOAuthToken> exchangeCodeForTokenViaFirebase({required String clientId, required String redirectUri, required String codeVerifier, required String code, String region = 'us-central1'}) async {
+  Future<RsuOAuthToken> refreshAccessTokenViaFirebase({required String clientId, required String refreshToken, String region = 'us-central1'}) async {
     final app = Firebase.app();
-    final projectId = (app.options.projectId ?? '').trim();
+    final projectId = app.options.projectId.trim();
     if (projectId.isEmpty) throw Exception('Missing Firebase projectId (Firebase not configured?)');
 
     final uri = Uri.parse(RsuConfig.firebaseFunctionsTokenExchangeUrl(projectId: projectId, region: region));
-    final resp = await _client.post(uri, headers: {'Content-Type': 'application/json'}, body: jsonEncode({'client_id': clientId, 'redirect_uri': redirectUri, 'code': code, 'code_verifier': codeVerifier}));
+    final resp = await _client.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'grant_type': 'refresh_token',
+        'client_id': clientId,
+        'refresh_token': refreshToken,
+      }),
+    );
+
+    final bodyText = utf8.decode(resp.bodyBytes, allowMalformed: true);
+    if (resp.statusCode != 200) {
+      debugPrint('rsuTokenExchange refresh failed HTTP ${resp.statusCode}: $bodyText');
+      throw Exception('Token refresh failed (HTTP ${resp.statusCode}). Body: ${bodyText.isEmpty ? '<empty>' : bodyText}');
+    }
+
+    final decoded = jsonDecode(bodyText);
+    if (decoded is! Map) throw Exception('Unexpected token response');
+
+    final accessToken = '${decoded['access_token'] ?? ''}';
+    final expiresIn = (decoded['expires_in'] is int) ? decoded['expires_in'] as int : int.tryParse('${decoded['expires_in'] ?? ''}') ?? 0;
+    final newRefresh = '${decoded['refresh_token'] ?? ''}';
+
+    if (accessToken.isEmpty) throw Exception('No access_token in response');
+    return RsuOAuthToken(accessToken: accessToken, expiresIn: expiresIn, refreshToken: newRefresh);
+  }
+
+  Future<RsuOAuthToken> exchangeCodeForTokenViaFirebase({required String clientId, required String redirectUri, required String codeVerifier, required String code, String region = 'us-central1'}) async {
+    final app = Firebase.app();
+    final projectId = app.options.projectId.trim();
+    if (projectId.isEmpty) throw Exception('Missing Firebase projectId (Firebase not configured?)');
+
+    final uri = Uri.parse(RsuConfig.firebaseFunctionsTokenExchangeUrl(projectId: projectId, region: region));
+    final resp = await _client.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'grant_type': 'authorization_code',
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'code': code,
+        'code_verifier': codeVerifier,
+      }),
+    );
 
     final bodyText = utf8.decode(resp.bodyBytes, allowMalformed: true);
     if (resp.statusCode != 200) {
