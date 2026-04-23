@@ -16,7 +16,7 @@ class LogoutActionButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final requiredCode = appState.logoutCode;
 
-    // If a logout code is set, prompt for it (user may verify, skip, or cancel)
+    // If a logout code is set, require correct entry (no skip — optional code is only when setting up kiosk).
     if (requiredCode != null && requiredCode.isNotEmpty) {
       final codeValid = await _promptForLogoutCode(context, requiredCode);
       if (!codeValid) return;
@@ -96,79 +96,72 @@ class LogoutActionButton extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + MediaQuery.viewInsetsOf(ctx).bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Enter Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text(
-                'Enter your logout code below, or skip if you prefer to log out without it.',
-                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: codeController,
-                keyboardType: TextInputType.number,
-                obscureText: obscureCode,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: 'Logout Code',
-                  filled: true,
-                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  errorText: errorText,
-                  suffixIcon: IconButton(
-                    icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Enter Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(
+                  'Enter the logout code for this kiosk to continue.',
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  obscureText: obscureCode,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'Logout Code',
+                    filled: true,
+                    fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    errorText: errorText,
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+                    ),
                   ),
+                  onChanged: (_) => setSheetState(() => errorText = null),
+                  onSubmitted: (_) {
+                    if (codeController.text.trim() == requiredCode) {
+                      Navigator.of(ctx).pop(true);
+                    } else {
+                      setSheetState(() => errorText = 'Incorrect code');
+                    }
+                  },
                 ),
-                onChanged: (_) => setSheetState(() => errorText = null),
-                onSubmitted: (_) {
-                  if (codeController.text.trim() == requiredCode) {
-                    Navigator.of(ctx).pop(true);
-                  } else {
-                    setSheetState(() => errorText = 'Incorrect code');
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.actionOrange,
-                  foregroundColor: AppColors.onActionOrange,
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const SizedBox(height: 16),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.actionOrange,
+                    foregroundColor: AppColors.onActionOrange,
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    if (codeController.text.trim() == requiredCode) {
+                      Navigator.of(ctx).pop(true);
+                    } else {
+                      setSheetState(() => errorText = 'Incorrect code');
+                    }
+                  },
+                  child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
-                onPressed: () {
-                  if (codeController.text.trim() == requiredCode) {
-                    Navigator.of(ctx).pop(true);
-                  } else {
-                    setSheetState(() => errorText = 'Incorrect code');
-                  }
-                },
-                child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(height: 10),
-              TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
                 ),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text('Skip', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 4),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
-                ),
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

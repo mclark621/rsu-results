@@ -140,7 +140,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     final raceId = _selectedRaceId;
     if (raceId == null || raceId.isEmpty) return;
 
-    // Prompt for logout code before locking into kiosk mode
+    // Optional logout code for kiosk mode (restricts routes + logout confirmation).
     final logoutCode = await _promptForLogoutCode();
     if (logoutCode == null) return; // User cancelled
     if (!mounted) return;
@@ -148,7 +148,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     final appState = context.read<RsuAppState>();
     await appState.setRaceId(raceId);
     await appState.setTimeoutSeconds(_timeout);
-    await appState.setLogoutCode(logoutCode);
+    await appState.setLogoutCode(logoutCode.isEmpty ? null : logoutCode);
     if (!mounted) return;
     
     // Clear browser history on web to prevent back button from escaping kiosk mode
@@ -166,6 +166,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     context.go('${AppRoutes.search}?raceId=$raceId');
   }
 
+  /// Returns `null` if cancelled, `''` to continue without a kiosk logout code, or the code string.
   Future<String?> _promptForLogoutCode() async {
     final cs = Theme.of(context).colorScheme;
     final codeController = TextEditingController();
@@ -180,63 +181,76 @@ class _RacePickerPageState extends State<RacePickerPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + MediaQuery.viewInsetsOf(ctx).bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Set Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text(
-                'This code will be required to log out. Keep it safe — without it, you cannot exit kiosk mode.',
-                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: codeController,
-                keyboardType: TextInputType.number,
-                obscureText: obscureCode,
-                decoration: InputDecoration(
-                  labelText: 'Logout Code (4+ digits)',
-                  filled: true,
-                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  errorText: errorText,
-                  suffixIcon: IconButton(
-                    icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Set Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(
+                  'Optional: require a code when logging out and lock navigation to results search. '
+                  'Skip if you don\'t need that protection on this device.',
+                  style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: codeController,
+                  keyboardType: TextInputType.number,
+                  obscureText: obscureCode,
+                  decoration: InputDecoration(
+                    labelText: 'Logout Code (4+ digits)',
+                    filled: true,
+                    fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    errorText: errorText,
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureCode ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setSheetState(() => obscureCode = !obscureCode),
+                    ),
                   ),
+                  onChanged: (_) => setSheetState(() => errorText = null),
                 ),
-                onChanged: (_) => setSheetState(() => errorText = null),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.actionOrange,
-                  foregroundColor: AppColors.onActionOrange,
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const SizedBox(height: 16),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.actionOrange,
+                    foregroundColor: AppColors.onActionOrange,
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    final code = codeController.text.trim();
+                    if (code.length < 4) {
+                      setSheetState(() => errorText = 'Code must be at least 4 characters');
+                      return;
+                    }
+                    Navigator.of(ctx).pop(code);
+                  },
+                  child: const Text('Set Code & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
-                onPressed: () {
-                  final code = codeController.text.trim();
-                  if (code.length < 4) {
-                    setSheetState(() => errorText = 'Code must be at least 4 characters');
-                    return;
-                  }
-                  Navigator.of(ctx).pop(code);
-                },
-                child: const Text('Set Code & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(''),
+                  child: Text('Continue without code', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
                 ),
-                onPressed: () => Navigator.of(ctx).pop(null),
-                child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
-              ),
-            ],
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(null),
+                  child: Text('Cancel', style: TextStyle(color: cs.onSurfaceVariant)),
+                ),
+              ],
+            ),
           ),
         ),
       ),
