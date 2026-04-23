@@ -1,3 +1,5 @@
+import 'package:rsu_results/rsu/race_text_style_config.dart';
+
 class RsuRaceSummary {
   final String raceId;
   final String name;
@@ -182,6 +184,12 @@ class RsuRaceThemeSettings {
   final String nameColorHex;
   final String backgroundColorHex;
   final String sponsorLogoDataUrl;
+  final RsuRaceTextStyleConfig participantNameStyle;
+  final RsuRaceTextStyleConfig chipTimeStyle;
+  final RsuRaceTextStyleConfig finisherLineStyle;
+  final RsuRaceTextStyleConfig metricLabelStyle;
+  final RsuRaceTextStyleConfig metricValueStyle;
+  final RsuRaceTextStyleConfig emptyStateTitleStyle;
 
   const RsuRaceThemeSettings({
     required this.raceId,
@@ -190,6 +198,12 @@ class RsuRaceThemeSettings {
     required this.nameColorHex,
     required this.backgroundColorHex,
     required this.sponsorLogoDataUrl,
+    required this.participantNameStyle,
+    required this.chipTimeStyle,
+    required this.finisherLineStyle,
+    required this.metricLabelStyle,
+    required this.metricValueStyle,
+    required this.emptyStateTitleStyle,
   });
 
   RsuRaceThemeSettings copyWith({
@@ -198,6 +212,12 @@ class RsuRaceThemeSettings {
     String? nameColorHex,
     String? backgroundColorHex,
     String? sponsorLogoDataUrl,
+    RsuRaceTextStyleConfig? participantNameStyle,
+    RsuRaceTextStyleConfig? chipTimeStyle,
+    RsuRaceTextStyleConfig? finisherLineStyle,
+    RsuRaceTextStyleConfig? metricLabelStyle,
+    RsuRaceTextStyleConfig? metricValueStyle,
+    RsuRaceTextStyleConfig? emptyStateTitleStyle,
   }) {
     return RsuRaceThemeSettings(
       raceId: raceId,
@@ -206,6 +226,12 @@ class RsuRaceThemeSettings {
       nameColorHex: nameColorHex ?? this.nameColorHex,
       backgroundColorHex: backgroundColorHex ?? this.backgroundColorHex,
       sponsorLogoDataUrl: sponsorLogoDataUrl ?? this.sponsorLogoDataUrl,
+      participantNameStyle: participantNameStyle ?? this.participantNameStyle,
+      chipTimeStyle: chipTimeStyle ?? this.chipTimeStyle,
+      finisherLineStyle: finisherLineStyle ?? this.finisherLineStyle,
+      metricLabelStyle: metricLabelStyle ?? this.metricLabelStyle,
+      metricValueStyle: metricValueStyle ?? this.metricValueStyle,
+      emptyStateTitleStyle: emptyStateTitleStyle ?? this.emptyStateTitleStyle,
     );
   }
 
@@ -216,9 +242,25 @@ class RsuRaceThemeSettings {
     'nameColorHex': nameColorHex,
     'backgroundColorHex': backgroundColorHex,
     'sponsorLogoDataUrl': sponsorLogoDataUrl,
+    'typography': {
+      'participantName': participantNameStyle.toJson(),
+      'chipTime': chipTimeStyle.toJson(),
+      'finisherLine': finisherLineStyle.toJson(),
+      'metricLabel': metricLabelStyle.toJson(),
+      'metricValue': metricValueStyle.toJson(),
+      'emptyStateTitle': emptyStateTitleStyle.toJson(),
+    },
   };
 
   factory RsuRaceThemeSettings.fromJson(Map<String, dynamic> json) {
+    final typo = json['typography'];
+    final typoMap = typo is Map ? typo.cast<String, dynamic>() : const <String, dynamic>{};
+
+    Map<String, dynamic>? typoRole(String k) {
+      final v = typoMap[k];
+      return v is Map ? v.cast<String, dynamic>() : null;
+    }
+
     return RsuRaceThemeSettings(
       raceId: '${json['raceId'] ?? ''}',
       labelColorHex: '${json['labelColorHex'] ?? '#90D5FF'}',
@@ -226,6 +268,12 @@ class RsuRaceThemeSettings {
       nameColorHex: '${json['nameColorHex'] ?? '#000000'}',
       backgroundColorHex: '${json['backgroundColorHex'] ?? '#f4f7f6'}',
       sponsorLogoDataUrl: '${json['sponsorLogoDataUrl'] ?? ''}',
+      participantNameStyle: RsuRaceTextStyleConfig.fromJson(typoRole('participantName'), RsuRaceTypographyDefaults.participantName),
+      chipTimeStyle: RsuRaceTextStyleConfig.fromJson(typoRole('chipTime'), RsuRaceTypographyDefaults.chipTime),
+      finisherLineStyle: RsuRaceTextStyleConfig.fromJson(typoRole('finisherLine'), RsuRaceTypographyDefaults.finisherLine),
+      metricLabelStyle: RsuRaceTextStyleConfig.fromJson(typoRole('metricLabel'), RsuRaceTypographyDefaults.metricLabel),
+      metricValueStyle: RsuRaceTextStyleConfig.fromJson(typoRole('metricValue'), RsuRaceTypographyDefaults.metricValue),
+      emptyStateTitleStyle: RsuRaceTextStyleConfig.fromJson(typoRole('emptyStateTitle'), RsuRaceTypographyDefaults.emptyStateTitle),
     );
   }
 
@@ -236,5 +284,11 @@ class RsuRaceThemeSettings {
     nameColorHex: '#000000',
     backgroundColorHex: '#f4f7f6',
     sponsorLogoDataUrl: '',
+    participantNameStyle: RsuRaceTypographyDefaults.participantName,
+    chipTimeStyle: RsuRaceTypographyDefaults.chipTime,
+    finisherLineStyle: RsuRaceTypographyDefaults.finisherLine,
+    metricLabelStyle: RsuRaceTypographyDefaults.metricLabel,
+    metricValueStyle: RsuRaceTypographyDefaults.metricValue,
+    emptyStateTitleStyle: RsuRaceTypographyDefaults.emptyStateTitle,
   );
 }

@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:rsu_results/components/copyable_error_panel.dart';
@@ -13,6 +12,7 @@ import 'package:rsu_results/components/remote_logo_image.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
+import 'package:rsu_results/rsu/race_text_style_config.dart';
 import 'package:rsu_results/rsu/rsu_api.dart';
 
 class ResultsPage extends StatefulWidget {
@@ -522,7 +522,14 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       child: Icon(Icons.error_outline, color: cs.onErrorContainer, size: 36),
                     ),
                     const SizedBox(height: 12),
-                    Text('No Results Found', style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, color: cs.onSurface, height: 1.1)),
+                    Text(
+                      'No Results Found',
+                      style: buildRaceTextStyle(
+                        widget.theme?.emptyStateTitleStyle ?? RsuRaceTypographyDefaults.emptyStateTitle,
+                        color: cs.onSurface,
+                        scale: scale,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text('We couldn’t find results for that bib/name for this event. Please verify the search and try again.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant, height: 1.45), textAlign: TextAlign.center),
                     const SizedBox(height: 16),
@@ -548,6 +555,7 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
     }
 
     final selectedResult = widget.results[_selected];
+    final typo = widget.theme;
 
     return Center(
       child: SingleChildScrollView(
@@ -610,7 +618,11 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                     text: '${selectedResult.firstName} ${selectedResult.lastName}'.trim(),
                     fill: nameColor,
                     stroke: Colors.white,
-                    style: GoogleFonts.alfaSlabOne(fontSize: 46 * scale, height: 1.0, letterSpacing: 0.2),
+                    style: buildRaceTextStyle(
+                      typo?.participantNameStyle ?? RsuRaceTypographyDefaults.participantName,
+                      color: nameColor,
+                      scale: scale,
+                    ),
                     textAlign: TextAlign.center,
                     strokeWidth: 2,
                   ),
@@ -618,25 +630,34 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
               ),
               const SizedBox(height: 12),
 
-              Text(selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime, style: GoogleFonts.rubikDistressed(fontSize: 86 * scale, height: 1.0, color: dataColor), textAlign: TextAlign.center),
+              Text(
+                selectedResult.chipTime.isEmpty ? '-' : selectedResult.chipTime,
+                style: buildRaceTextStyle(typo?.chipTimeStyle ?? RsuRaceTypographyDefaults.chipTime, color: dataColor, scale: scale),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
 
-              Text('${selectedResult.eventName} FINISHER', style: GoogleFonts.rubikDistressed(fontSize: 28 * scale, height: 1.1, color: dataColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+              Text(
+                '${selectedResult.eventName} FINISHER',
+                style: buildRaceTextStyle(typo?.finisherLineStyle ?? RsuRaceTypographyDefaults.finisherLine, color: dataColor, scale: scale),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 22),
 
-              ResultsMetricSection(label: 'BIB NUMBER', value: selectedResult.bib.isEmpty ? '-' : selectedResult.bib, labelColor: labelColor, dataColor: dataColor, scale: scale),
+              ResultsMetricSection(theme: typo, label: 'BIB NUMBER', value: selectedResult.bib.isEmpty ? '-' : selectedResult.bib, labelColor: labelColor, dataColor: dataColor, scale: scale),
               const SizedBox(height: 18),
 
-              ResultsMetricSection(label: 'OVERALL RANK', value: _formatRank(selectedResult.place, selectedResult.finishers), labelColor: labelColor, dataColor: dataColor, scale: scale),
+              ResultsMetricSection(theme: typo, label: 'OVERALL RANK', value: _formatRank(selectedResult.place, selectedResult.finishers), labelColor: labelColor, dataColor: dataColor, scale: scale),
               const SizedBox(height: 18),
 
               if (selectedResult.genderPlace.isNotEmpty) ...[
-                ResultsMetricSection(label: 'GENDER RANK', value: _formatRank(selectedResult.genderPlace, selectedResult.genderFinishers), labelColor: labelColor, dataColor: dataColor, scale: scale),
+                ResultsMetricSection(theme: typo, label: 'GENDER RANK', value: _formatRank(selectedResult.genderPlace, selectedResult.genderFinishers), labelColor: labelColor, dataColor: dataColor, scale: scale),
                 const SizedBox(height: 18),
               ],
 
               if (selectedResult.divisionPlace.isNotEmpty && selectedResult.divisionFinishers > 0) ...[
                 ResultsMetricSection(
+                  theme: typo,
                   label: (selectedResult.divisionLabel.trim().isEmpty ? 'DIVISION RANK' : selectedResult.divisionLabel.trim()).toUpperCase(),
                   value: _formatRank(selectedResult.divisionPlace, selectedResult.divisionFinishers),
                   labelColor: labelColor,
@@ -647,7 +668,7 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
               ],
 
 
-              ResultsMetricSection(label: 'AVERAGE PACE', value: selectedResult.pace.isEmpty ? '-' : selectedResult.pace, labelColor: labelColor, dataColor: dataColor, scale: scale),
+              ResultsMetricSection(theme: typo, label: 'AVERAGE PACE', value: selectedResult.pace.isEmpty ? '-' : selectedResult.pace, labelColor: labelColor, dataColor: dataColor, scale: scale),
               const SizedBox(height: 24),
 
               // Keep the screen clean like the legacy display: no extra cards here.
@@ -687,21 +708,38 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
 }
 
 class ResultsMetricSection extends StatelessWidget {
+  final RsuRaceThemeSettings? theme;
   final String label;
   final String value;
   final Color labelColor;
   final Color dataColor;
   final double scale;
 
-  const ResultsMetricSection({super.key, required this.label, required this.value, required this.labelColor, required this.dataColor, required this.scale});
+  const ResultsMetricSection({
+    super.key,
+    this.theme,
+    required this.label,
+    required this.value,
+    required this.labelColor,
+    required this.dataColor,
+    required this.scale,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: GoogleFonts.alfaSlabOne(fontSize: 28 * scale, height: 1.1, color: labelColor, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+        Text(
+          label,
+          style: buildRaceTextStyle(theme?.metricLabelStyle ?? RsuRaceTypographyDefaults.metricLabel, color: labelColor, scale: scale),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 6),
-        Text(value, style: GoogleFonts.rubikDistressed(fontSize: 22 * scale, height: 1.1, color: dataColor), textAlign: TextAlign.center),
+        Text(
+          value,
+          style: buildRaceTextStyle(theme?.metricValueStyle ?? RsuRaceTypographyDefaults.metricValue, color: dataColor, scale: scale),
+          textAlign: TextAlign.center,
+        ),
       ],
     );
   }

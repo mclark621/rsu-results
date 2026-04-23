@@ -13,6 +13,7 @@ import 'package:rsu_results/components/logout_action_button.dart';
 import 'package:rsu_results/nav.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
+import 'package:rsu_results/rsu/race_text_style_config.dart';
 import 'package:rsu_results/theme.dart';
 
 class RaceSettingsPage extends StatefulWidget {
@@ -144,6 +145,62 @@ class _RaceSettingsPageState extends State<RaceSettingsPage> {
                       value: s.backgroundColorHex,
                       onChanged: (v) => setState(() => _settings = s.copyWith(backgroundColorHex: v)),
                     ),
+                    const SizedBox(height: 22),
+                    Text('Results typography', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Font, size, weight, and style for each results screen text. Defaults match the original look.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.4, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
+                    ),
+                    const SizedBox(height: 8),
+                    _TypographyRoleEditor(
+                      title: 'Participant name',
+                      subtitle: 'Large name at top of results',
+                      config: s.participantNameStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.participantName,
+                      previewColor: _colorFromHex(s.nameColorHex) ?? cs.onSurface,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(participantNameStyle: c)),
+                    ),
+                    _TypographyRoleEditor(
+                      title: 'Finish time',
+                      subtitle: 'Chip time display',
+                      config: s.chipTimeStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.chipTime,
+                      previewColor: _colorFromHex(s.dataColorHex) ?? cs.tertiary,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(chipTimeStyle: c)),
+                    ),
+                    _TypographyRoleEditor(
+                      title: 'Finisher line',
+                      subtitle: 'e.g. “5K FINISHER”',
+                      config: s.finisherLineStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.finisherLine,
+                      previewColor: _colorFromHex(s.dataColorHex) ?? cs.tertiary,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(finisherLineStyle: c)),
+                    ),
+                    _TypographyRoleEditor(
+                      title: 'Metric labels',
+                      subtitle: 'BIB NUMBER, OVERALL RANK, etc.',
+                      config: s.metricLabelStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.metricLabel,
+                      previewColor: _colorFromHex(s.labelColorHex) ?? cs.primary,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(metricLabelStyle: c)),
+                    ),
+                    _TypographyRoleEditor(
+                      title: 'Metric values',
+                      subtitle: 'Numbers under each label',
+                      config: s.metricValueStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.metricValue,
+                      previewColor: _colorFromHex(s.dataColorHex) ?? cs.tertiary,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(metricValueStyle: c)),
+                    ),
+                    _TypographyRoleEditor(
+                      title: 'Empty results title',
+                      subtitle: 'When no results are found',
+                      config: s.emptyStateTitleStyle,
+                      defaultConfig: RsuRaceTypographyDefaults.emptyStateTitle,
+                      previewColor: cs.onSurface,
+                      onChanged: (c) => setState(() => _settings = s.copyWith(emptyStateTitleStyle: c)),
+                    ),
                     const SizedBox(height: 12),
                     FilledButton.icon(
                       onPressed: _pickSponsorLogo,
@@ -190,6 +247,14 @@ class _RaceSettingsPageState extends State<RaceSettingsPage> {
               ),
       ),
     );
+  }
+
+  static Color? _colorFromHex(String hex) {
+    final cleaned = hex.replaceAll('#', '').trim();
+    if (cleaned.length != 6) return null;
+    final v = int.tryParse(cleaned, radix: 16);
+    if (v == null) return null;
+    return Color(0xFF000000 | v);
   }
 
   static String _guessMime(String ext) {
@@ -258,6 +323,140 @@ class _ColorRow extends StatelessWidget {
   }
 }
 
+
+class _TypographyRoleEditor extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final RsuRaceTextStyleConfig config;
+  final RsuRaceTextStyleConfig defaultConfig;
+  final Color previewColor;
+  final ValueChanged<RsuRaceTextStyleConfig> onChanged;
+
+  const _TypographyRoleEditor({
+    required this.title,
+    required this.subtitle,
+    required this.config,
+    required this.defaultConfig,
+    required this.previewColor,
+    required this.onChanged,
+  });
+
+  static const _weights = [300, 400, 500, 600, 700, 800, 900];
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final fontKey = kRaceFontOptions.any((o) => o.key == config.fontKey) ? config.fontKey : 'alfaSlabOne';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: cs.outline.withValues(alpha: 0.2))),
+      child: ExpansionTile(
+        title: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+        subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Font',
+              filled: true,
+              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: fontKey,
+                items: [for (final o in kRaceFontOptions) DropdownMenuItem(value: o.key, child: Text(o.label))],
+                onChanged: (v) {
+                  if (v != null) onChanged(config.copyWith(fontKey: v));
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text('Size (${config.fontSize.round()} px at reference width)', style: Theme.of(context).textTheme.labelMedium),
+          Slider(
+            value: config.fontSize.clamp(8, 120),
+            min: 8,
+            max: 120,
+            divisions: 112,
+            label: config.fontSize.round().toString(),
+            onChanged: (v) => onChanged(config.copyWith(fontSize: v)),
+          ),
+          InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Weight',
+              filled: true,
+              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.55),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                value: _weights.contains(config.fontWeight) ? config.fontWeight : 400,
+                items: [for (final w in _weights) DropdownMenuItem(value: w, child: Text('Weight $w'))],
+                onChanged: (v) {
+                  if (v != null) onChanged(config.copyWith(fontWeight: v));
+                },
+              ),
+            ),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Italic'),
+            value: config.italic,
+            onChanged: (v) => onChanged(config.copyWith(italic: v)),
+          ),
+          Text('Letter spacing (${config.letterSpacing.toStringAsFixed(1)})', style: Theme.of(context).textTheme.labelMedium),
+          Slider(
+            value: config.letterSpacing.clamp(-2.0, 8.0),
+            min: -2,
+            max: 8,
+            divisions: 50,
+            label: config.letterSpacing.toStringAsFixed(1),
+            onChanged: (v) => onChanged(config.copyWith(letterSpacing: v)),
+          ),
+          Text('Line height (${config.height.toStringAsFixed(2)})', style: Theme.of(context).textTheme.labelMedium),
+          Slider(
+            value: config.height.clamp(0.8, 2.0),
+            min: 0.8,
+            max: 2.0,
+            divisions: 24,
+            label: config.height.toStringAsFixed(2),
+            onChanged: (v) => onChanged(config.copyWith(height: v)),
+          ),
+          const SizedBox(height: 8),
+          Text('Preview', style: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Center(
+                child: Text(
+                  'Sample ABCD 1234',
+                  textAlign: TextAlign.center,
+                  style: buildRaceTextStyle(config, color: previewColor, scale: 0.72),
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () => onChanged(defaultConfig),
+              child: const Text('Reset to default'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _SponsorLogoThumb extends StatelessWidget {
   final String dataUrl;
