@@ -16,7 +16,7 @@ class LogoutActionButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final requiredCode = appState.logoutCode;
 
-    // If a logout code is set, require it first
+    // If a logout code is set, prompt for it (user may verify, skip, or cancel)
     if (requiredCode != null && requiredCode.isNotEmpty) {
       final codeValid = await _promptForLogoutCode(context, requiredCode);
       if (!codeValid) return;
@@ -103,7 +103,7 @@ class LogoutActionButton extends StatelessWidget {
               Text('Enter Logout Code', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Text(
-                'A logout code is required to exit kiosk mode.',
+                'Enter your logout code below, or skip if you prefer to log out without it.',
                 style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
               ),
               const SizedBox(height: 16),
@@ -150,6 +150,15 @@ class LogoutActionButton extends StatelessWidget {
                 child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.w700)),
               ),
               const SizedBox(height: 10),
+              TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text('Skip', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 4),
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(54),
