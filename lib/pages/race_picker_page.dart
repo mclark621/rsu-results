@@ -190,10 +190,28 @@ class _RacePickerPageState extends State<RacePickerPage> {
                 const SizedBox(height: 6),
                 Text(
                   'Optional: require a code when logging out and lock navigation to results search. '
-                  'Skip if you don\'t need that protection on this device.',
+                  'Use Skip if you don\'t need that on this device.',
                   style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45, color: cs.onSurfaceVariant.withValues(alpha: 0.9)),
                 ),
                 const SizedBox(height: 16),
+                FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(''),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.skip_next),
+                      SizedBox(width: 10),
+                      Text('Skip — no logout code', style: TextStyle(fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Or set a code', style: Theme.of(ctx).textTheme.labelLarge?.copyWith(color: cs.onSurfaceVariant, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 10),
                 TextField(
                   controller: codeController,
                   keyboardType: TextInputType.number,
@@ -228,16 +246,6 @@ class _RacePickerPageState extends State<RacePickerPage> {
                     Navigator.of(ctx).pop(code);
                   },
                   child: const Text('Set Code & Continue', style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    side: BorderSide(color: cs.outline.withValues(alpha: 0.5)),
-                  ),
-                  onPressed: () => Navigator.of(ctx).pop(''),
-                  child: Text('Continue without code', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton(
