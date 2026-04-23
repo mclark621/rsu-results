@@ -5,7 +5,7 @@
   },
   "hosting": {
     "predeploy": [
-      "flutter build web --release --pwa-strategy=none",
+      "flutter build web --release --pwa-strategy none",
       "bash tool/inject_web_cache_bust.sh"
     ],
     "public": "build/web",
