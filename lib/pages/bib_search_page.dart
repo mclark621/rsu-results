@@ -140,7 +140,7 @@ class _BibSearchPageState extends State<BibSearchPage> {
       child: Scaffold(
       backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
+        title: null,
         automaticallyImplyLeading: false,
         actions: const [LogoutActionButton()],
       ),

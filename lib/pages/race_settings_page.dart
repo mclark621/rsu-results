@@ -82,7 +82,7 @@ class _RaceSettingsPageState extends State<RaceSettingsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
+        title: null,
         leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
           IconButton(

@@ -237,13 +237,13 @@ class _ResultsPageState extends State<ResultsPage> {
         child: Scaffold(
         backgroundColor: background ?? Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
-        leading: IconButton(
-          onPressed: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
-          icon: Icon(Icons.arrow_back, color: cs.primary),
+          title: null,
+          leading: IconButton(
+            onPressed: () => context.go('${AppRoutes.search}?raceId=${widget.raceId}'),
+            icon: Icon(Icons.arrow_back, color: cs.primary),
+          ),
+          actions: const [LogoutActionButton()],
         ),
-        actions: const [LogoutActionButton()],
-      ),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())

@@ -101,7 +101,7 @@ class _MyAppState extends State<MyApp> {
           final resolvedLight = bg == null ? lightTheme : lightTheme.copyWith(scaffoldBackgroundColor: bg);
           final resolvedDark = bg == null ? darkTheme : darkTheme.copyWith(scaffoldBackgroundColor: bg);
           return MaterialApp.router(
-            title: 'Bay City Timing & Events',
+            title: 'RSU Results',
             debugShowCheckedModeBanner: false,
             theme: resolvedLight,
             darkTheme: resolvedDark,

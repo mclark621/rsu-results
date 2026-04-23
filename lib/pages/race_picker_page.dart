@@ -262,7 +262,7 @@ class _RacePickerPageState extends State<RacePickerPage> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
+        title: null,
         leading: IconButton(onPressed: () => context.go(AppRoutes.dates), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: [
           IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),

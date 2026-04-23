@@ -145,7 +145,7 @@ class _GlobalOAuthSettingsPageState extends State<GlobalOAuthSettingsPage> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
+        title: null,
         leading: IconButton(onPressed: () => context.pop(), icon: Icon(Icons.arrow_back, color: cs.primary)),
         actions: const [LogoutActionButton()],
       ),

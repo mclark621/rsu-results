@@ -54,7 +54,7 @@ class _DateRangePageState extends State<DateRangePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bay City Timing & Events'),
+        title: null,
         actions: [
           IconButton(tooltip: 'Global settings', onPressed: () => context.push(AppRoutes.settingsGlobal), icon: Icon(Icons.manage_accounts_outlined, color: cs.primary)),
           const LogoutActionButton(),
