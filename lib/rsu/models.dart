@@ -151,7 +151,7 @@ class RsuEventResult {
   final String pace;
   final String place;
 
-  /// RunSignup division header/code for placement (e.g. `M3034`). Map for display labels: `rsuAgeGroupDisplayLabel()` in `age_group_display.dart`.
+  /// Short age-group / division code from the API (e.g. `M3034`). Display with `rsuAgeGroupDisplayLabel()`.
   final String divisionLabel;
   final String divisionPlace;
   final String genderPlace;
