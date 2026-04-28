@@ -151,8 +151,7 @@ class RsuEventResult {
   final String pace;
   final String place;
 
-  /// The raw RunSignup header/name for the division placement column (e.g. "M 30-34 Place").
-  /// This is what legacy `results.php` displays as the division label.
+  /// RunSignup division header/code for placement (e.g. `M3034`). Map for display labels: `rsuAgeGroupDisplayLabel()` in `age_group_display.dart`.
   final String divisionLabel;
   final String divisionPlace;
   final String genderPlace;

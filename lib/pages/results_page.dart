@@ -10,6 +10,7 @@ import 'package:rsu_results/components/copyable_error_panel.dart';
 import 'package:rsu_results/components/logout_action_button.dart';
 import 'package:rsu_results/components/remote_logo_image.dart';
 import 'package:rsu_results/nav.dart';
+import 'package:rsu_results/rsu/age_group_display.dart';
 import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
 import 'package:rsu_results/rsu/race_text_style_config.dart';
@@ -658,7 +659,11 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
               if (selectedResult.divisionPlace.isNotEmpty && selectedResult.divisionFinishers > 0) ...[
                 ResultsMetricSection(
                   theme: typo,
-                  label: (selectedResult.divisionLabel.trim().isEmpty ? 'DIVISION RANK' : selectedResult.divisionLabel.trim()).toUpperCase(),
+                  label: (selectedResult.divisionLabel.trim().isEmpty
+                          ? 'DIVISION RANK'
+                          : rsuAgeGroupDisplayLabel(selectedResult.divisionLabel))
+                      .trim()
+                      .toUpperCase(),
                   value: _formatRank(selectedResult.divisionPlace, selectedResult.divisionFinishers),
                   labelColor: labelColor,
                   dataColor: dataColor,
