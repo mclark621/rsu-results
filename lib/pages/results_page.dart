@@ -15,6 +15,7 @@ import 'package:rsu_results/rsu/app_state.dart';
 import 'package:rsu_results/rsu/models.dart';
 import 'package:rsu_results/rsu/race_text_style_config.dart';
 import 'package:rsu_results/rsu/rsu_api.dart';
+import 'package:rsu_results/theme.dart';
 
 class ResultsPage extends StatefulWidget {
   final String raceId;
@@ -275,6 +276,9 @@ class _ResultsPageState extends State<ResultsPage> {
     );
   }
 
+  /// Parses one result row. Division / age group: RunSignup usually sends a **short code** (e.g. `M3034`)
+  /// either as `results_headers['division-{id}-placement']` or as `row['division_group_n']`. That value is
+  /// stored in [RsuEventResult.divisionLabel] and passed through `rsuAgeGroupDisplayLabel` for display.
   static RsuEventResult _parseEventResult({required String eventName, required Map<String, dynamic> row, required Map<String, dynamic> setMap, required String chipTime, required String bib}) {
     final headers = (setMap['results_headers'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
     final divisionFinishers = (setMap['num_division_finishers'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{};
@@ -298,8 +302,13 @@ class _ResultsPageState extends State<ResultsPage> {
       if (placementVal != null && '$placementVal'.trim().isNotEmpty) {
         divisionPlace = '$placementVal'.trim();
         matchedDivisionFinishers = finishersForThisDivision;
-        if (divisionLabel.isEmpty && header.isNotEmpty) {
-          divisionLabel = header;
+        if (divisionLabel.isEmpty) {
+          if (header.isNotEmpty) {
+            divisionLabel = header;
+          } else {
+            final divText = '${row['division-$did'] ?? ''}'.trim();
+            if (divText.isNotEmpty) divisionLabel = divText;
+          }
         }
       }
 
@@ -315,6 +324,27 @@ class _ResultsPageState extends State<ResultsPage> {
     } else if (divisionFinishers.isNotEmpty) {
       final firstVal = divisionFinishers.values.first;
       divisionFinishersCount = (firstVal is int) ? firstVal : int.tryParse('${firstVal ?? 0}') ?? 0;
+    }
+
+    // Result sets configured with "division group" columns: short code in `division_group_n`, place in `division_group_n_place`.
+    int? divisionGroupIndex;
+    if (divisionLabel.isEmpty || divisionPlace.isEmpty) {
+      for (var i = 1; i <= 9; i++) {
+        final placeKey = 'division_group_${i}_place';
+        final textKey = 'division_group_$i';
+        final placeStr = '${row[placeKey] ?? ''}'.trim();
+        if (placeStr.isEmpty) continue;
+        if (divisionPlace.isEmpty) divisionPlace = placeStr;
+        final text = '${row[textKey] ?? ''}'.trim();
+        if (text.isNotEmpty && divisionLabel.isEmpty) divisionLabel = text;
+        divisionGroupIndex = i;
+        break;
+      }
+    }
+
+    if (divisionFinishersCount <= 0 && divisionGroupIndex != null) {
+      final n = _tryDivisionGroupFinishersCount(setMap, divisionGroupIndex!);
+      if (n != null && n > 0) divisionFinishersCount = n;
     }
 
     String genderPlace = '';
@@ -359,6 +389,27 @@ class _ResultsPageState extends State<ResultsPage> {
       genderFinishers: genderFinishersCount,
       divisionFinishers: divisionFinishersCount,
     );
+  }
+
+  /// Optional finisher count for a division group when the API exposes it on the result set.
+  static int? _tryDivisionGroupFinishersCount(Map<String, dynamic> setMap, int groupIndex) {
+    for (final key in [
+      'num_division_group_${groupIndex}_finishers',
+      'num_division_group_$groupIndex',
+    ]) {
+      final v = setMap[key];
+      if (v is int && v > 0) return v;
+      final p = int.tryParse('$v');
+      if (p != null && p > 0) return p;
+    }
+    final m = setMap['num_division_group_finishers'];
+    if (m is Map) {
+      final raw = m['$groupIndex'] ?? m[groupIndex];
+      if (raw is int && raw > 0) return raw;
+      final p = int.tryParse('$raw');
+      if (p != null && p > 0) return p;
+    }
+    return null;
   }
 
   static Color? _colorFromHex(String hex) {
@@ -541,9 +592,24 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                       alignment: WrapAlignment.center,
                       children: [
                         FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.actionOrange,
+                            foregroundColor: AppColors.onActionOrange,
+                            minimumSize: const Size.fromHeight(54),
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            splashFactory: NoSplash.splashFactory,
+                          ),
                           onPressed: widget.onTapName,
-                          icon: Icon(Icons.arrow_back, color: cs.onPrimary),
-                          label: Text('Back to Search', style: TextStyle(color: cs.onPrimary)),
+                          icon: Icon(Icons.arrow_back, color: AppColors.onActionOrange),
+                          label: Text(
+                            'Back to Search',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.onActionOrange,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.3,
+                                ),
+                          ),
                         ),
                       ],
                     ),
@@ -657,7 +723,8 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
                 const SizedBox(height: 18),
               ],
 
-              if (selectedResult.divisionPlace.isNotEmpty && selectedResult.divisionFinishers > 0) ...[
+              if (selectedResult.divisionPlace.isNotEmpty &&
+                  (selectedResult.divisionFinishers > 0 || selectedResult.divisionLabel.trim().isNotEmpty)) ...[
                 ResultsMetricSection(
                   theme: typo,
                   label: (selectedResult.divisionLabel.trim().isEmpty
