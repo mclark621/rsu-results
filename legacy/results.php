@@ -487,7 +487,13 @@ $age_groups = [
     "F4049" => "Female 40 - 49",
     "F5059" => "Female 50 - 59",
     "F6069" => "Female 60 - 69",
+    "F70F9" => "Female 70 - 79",
+    "F8089" => "Female 80 - 89",
     "F7099" => "Female 70 & Over",
+    "F7599" => "Female 75 & Over",
+    "F8099" => "Female 80 & Over",
+    "F8599" => "Female 85 & Over",
+    "F9099" => "Female 90 & Over",
     "M0114" => "Male 14 & Under",
     "M1519" => "Male 15 - 19",
     "M0119" => "Male 19 & Under",
@@ -506,6 +512,12 @@ $age_groups = [
     "M4049" => "Male 40 - 49",
     "M5059" => "Male 50 - 59",
     "M6069" => "Male 60 - 69",
+    "M7079" => "Male 70 - 79",
+    "M8089" => "Male 80 - 89",
+    "M7599" => "Male 75 & Over",
+    "M8099" => "Male 80 & Over",
+    "M8599" => "Male 85 & Over",
+    "M9099" => "Male 90 & Over",
     "M7099" => "Male 70 & Over"
 ];
 
