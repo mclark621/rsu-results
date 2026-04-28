@@ -744,8 +744,8 @@ class _ResultsLegacyLikeViewState extends State<ResultsLegacyLikeView> {
               ResultsMetricSection(theme: typo, label: 'AVERAGE PACE', value: selectedResult.pace.isEmpty ? '-' : selectedResult.pace, labelColor: labelColor, dataColor: dataColor, scale: scale),
               const SizedBox(height: 24),
 
-              // Keep the screen clean like the legacy display: no extra cards here.
-              // Sharing can be added later if you want parity with the PHP mobile-only share buttons.
+              // Keep the results screen minimal: no extra cards here.
+              // Sharing can be added later if desired.
             ],
           ),
         ),
