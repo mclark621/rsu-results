@@ -58,6 +58,12 @@ class RsuAppState extends ChangeNotifier {
   String? _logoutCode;
   String? get logoutCode => _logoutCode;
 
+  /// RunSignup OAuth token **or** timer `rsu_api_key` + `X-RSU-API-SECRET` (public results) is enough to load races and results.
+  bool get canFetchRsuRaceAndResults {
+    if ((_accessToken ?? '').trim().isNotEmpty) return true;
+    return (_timerApiKey ?? '').trim().isNotEmpty && (_timerApiSecret ?? '').trim().isNotEmpty;
+  }
+
   Color? _pageBackgroundColor;
   Color? get pageBackgroundColor => _pageBackgroundColor;
 

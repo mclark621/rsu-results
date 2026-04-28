@@ -109,7 +109,6 @@ class _ResultsPageState extends State<ResultsPage> {
     try {
       final appState = context.read<RsuAppState>();
       await appState.prepareForApiCall();
-      final token = appState.accessToken;
       final api = RsuApi();
 
       final theme = await appState.getRaceTheme(widget.raceId);
@@ -118,9 +117,11 @@ class _ResultsPageState extends State<ResultsPage> {
       final bib = widget.searchType == 'bib' ? (widget.bib ?? '').trim() : '';
       final lastName = widget.searchType == 'name' ? (widget.name ?? '').trim() : '';
 
-      if (token == null) throw Exception('Not authenticated');
+      if (!appState.canFetchRsuRaceAndResults) {
+        throw Exception('Sign in with RunSignup, or set Timer API key and secret (public results), to load results.');
+      }
 
-      final race = await api.getRace(accessToken: token, raceId: widget.raceId, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret, bibNum: bib.isEmpty ? null : bib, lastName: lastName.isEmpty ? null : lastName);
+      final race = await api.getRace(accessToken: appState.accessToken, raceId: widget.raceId, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret, bibNum: bib.isEmpty ? null : bib, lastName: lastName.isEmpty ? null : lastName);
       debugPrint('Loaded race ${race.raceId} "${race.name}" logoUrl="${race.logoUrl}"');
       _race = race;
 
@@ -148,7 +149,7 @@ class _ResultsPageState extends State<ResultsPage> {
         if (previousRaceEventDaysId.isNotEmpty && previousRaceEventDaysId != ev.raceEventDaysId && (start == null || start.isBefore(now))) break;
         previousRaceEventDaysId = ev.raceEventDaysId;
 
-        final resultJson = await api.getEventResults(accessToken: token, raceId: widget.raceId, eventId: ev.eventId, baseParams: baseParams, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret);
+        final resultJson = await api.getEventResults(accessToken: appState.accessToken, raceId: widget.raceId, eventId: ev.eventId, baseParams: baseParams, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret);
         final sets = (resultJson['individual_results_sets'] as List?) ?? const [];
         if (sets.isEmpty) continue;
 

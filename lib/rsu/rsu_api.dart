@@ -236,7 +236,7 @@ class RsuApi {
     return (userId: userId, email: email, firstName: firstName, lastName: lastName);
   }
 
-  Future<RsuRaceDetails> getRace({required String accessToken, required String raceId, String? timerApiKey, String? timerApiSecret, String? bibNum, String? lastName}) async {
+  Future<RsuRaceDetails> getRace({String? accessToken, required String raceId, String? timerApiKey, String? timerApiSecret, String? bibNum, String? lastName}) async {
     final params = <String, String>{'format': 'json', 'most_recent_events_only': 'F', 'include_division_finishers': 'T', 'include_total_finishers': 'T'};
     final apiKey = (timerApiKey ?? '').trim();
     if (apiKey.isNotEmpty) params['rsu_api_key'] = apiKey;
@@ -254,7 +254,7 @@ class RsuApi {
   }
 
   Future<Map<String, dynamic>> getEventResults({
-    required String accessToken,
+    String? accessToken,
     required String raceId,
     required String eventId,
     required Map<String, String> baseParams,
@@ -274,10 +274,12 @@ class RsuApi {
     return decoded.cast<String, dynamic>();
   }
 
-  Future<({http.Response resp, Uri effectiveUri})> _safeGetWithEffectiveUri(Uri uri, {required String accessToken, String? timerApiSecret}) async {
+  Future<({http.Response resp, Uri effectiveUri})> _safeGetWithEffectiveUri(Uri uri, {String? accessToken, String? timerApiSecret}) async {
     try {
       final effectiveUri = kIsWeb ? _toFirebaseProxyUri(uri) : uri;
-      final headers = <String, String>{'Authorization': 'Bearer $accessToken'};
+      final headers = <String, String>{};
+      final token = (accessToken ?? '').trim();
+      if (token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
       final secret = (timerApiSecret ?? '').trim();
       if (secret.isNotEmpty) headers['X-RSU-API-SECRET'] = secret;
       final resp = await _client.get(effectiveUri, headers: headers).timeout(const Duration(seconds: 30));
@@ -291,7 +293,7 @@ class RsuApi {
     }
   }
 
-  Future<http.Response> _safeGet(Uri uri, {required String accessToken, String? timerApiSecret}) async {
+  Future<http.Response> _safeGet(Uri uri, {String? accessToken, String? timerApiSecret}) async {
     final r = await _safeGetWithEffectiveUri(uri, accessToken: accessToken, timerApiSecret: timerApiSecret);
     return r.resp;
   }

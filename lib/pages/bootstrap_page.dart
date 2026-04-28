@@ -25,8 +25,23 @@ class _BootstrapPageState extends State<BootstrapPage> {
     _navigated = true;
 
     final state = context.read<RsuAppState>();
+    final publicRaceId = RsuPublicRaceLinkQuery.raceId();
+    final publicBib = RsuPublicRaceLinkQuery.bibNum();
+
     state.bootstrap().then((_) async {
       if (!mounted) return;
+
+      if (publicRaceId != null) {
+        await state.prepareForApiCall();
+        if (!mounted) return;
+        if (publicBib != null) {
+          context.go('${AppRoutes.results}?raceId=${Uri.encodeComponent(publicRaceId)}&searchType=bib&bib=${Uri.encodeComponent(publicBib)}');
+        } else {
+          context.go('${AppRoutes.search}?raceId=${Uri.encodeComponent(publicRaceId)}');
+        }
+        return;
+      }
+
       final accessToken = state.accessToken;
       if (accessToken == null) {
         context.go(AppRoutes.login);

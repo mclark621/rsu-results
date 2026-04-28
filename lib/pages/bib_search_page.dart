@@ -59,12 +59,13 @@ class _BibSearchPageState extends State<BibSearchPage> {
     try {
       final appState = context.read<RsuAppState>();
       await appState.prepareForApiCall();
-      final token = appState.accessToken;
       final theme = await appState.getRaceTheme(widget.raceId);
 
-      if (token == null) throw Exception('Not authenticated');
+      if (!appState.canFetchRsuRaceAndResults) {
+        throw Exception('Sign in with RunSignup, or set Timer API key and secret (public results), to load this race.');
+      }
       final api = RsuApi();
-      final race = await api.getRace(accessToken: token, raceId: widget.raceId, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret);
+      final race = await api.getRace(accessToken: appState.accessToken, raceId: widget.raceId, timerApiKey: appState.timerApiKey, timerApiSecret: appState.timerApiSecret);
       debugPrint('Loaded race ${race.raceId} "${race.name}" logoUrl="${race.logoUrl}"');
       if (!mounted) return;
       setState(() {

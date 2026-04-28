@@ -2,10 +2,16 @@
 require('ApiConfig.php');
 session_start();
 
-// If race_id is provided, immediately redirect to bibsearch.php without OAuth
+// If race_id is provided, skip OAuth: public search or direct results when bib_num is set
 if (isset($_GET['race_id']) && !empty($_GET['race_id'])) {
     $race_id = $_GET['race_id'];
-    header('Location: bibsearch.php?race_id=' . urlencode($race_id));
+    $bib_num = isset($_GET['bib_num']) ? trim((string)$_GET['bib_num']) : '';
+    if ($bib_num !== '') {
+        $q = ['race_id' => $race_id, 'bib_num' => $bib_num];
+        header('Location: results.php?' . http_build_query($q));
+    } else {
+        header('Location: bibsearch.php?race_id=' . urlencode($race_id));
+    }
     exit;
 }
 

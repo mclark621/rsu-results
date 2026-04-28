@@ -146,3 +146,24 @@ class AppRoutes {
   static const String settingsGlobal = '/settings/oauth';
   static const String settingsRace = '/settings/race';
 }
+
+/// Reads public deep-link query params from [Uri.base] (before the `#` hash on web — same idea as OAuth params in [AppRouter.createRouter]).
+///
+/// Example: `https://host/?race_id=123&bib_num=45#/`
+class RsuPublicRaceLinkQuery {
+  static Map<String, String> _raw() => Uri.base.queryParameters;
+
+  /// Non-empty [race_id] or [raceId] query value, or `null`.
+  static String? raceId() {
+    final q = _raw();
+    final v = (q['race_id'] ?? q['raceId'] ?? '').trim();
+    return v.isEmpty ? null : v;
+  }
+
+  /// Non-empty [bib_num] or [bib] query value, or `null`.
+  static String? bibNum() {
+    final q = _raw();
+    final v = (q['bib_num'] ?? q['bib'] ?? '').trim();
+    return v.isEmpty ? null : v;
+  }
+}
